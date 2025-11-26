@@ -1,0 +1,8 @@
+CREATE DATABASE IF NOT EXISTS user_db;
+USE user_db;
+
+CREATE TABLE IF NOT EXISTS users (
+    email VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(100),
+    surname VARCHAR(100)
+);

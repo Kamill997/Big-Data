@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package user_manager;
+
+// Servizio per la verifica degli utenti
+service UserManager {
+  // Funzione chiamata dal Data Collector
+  rpc VerifyUser (UserRequest) returns (UserResponse);
+}
+
+message UserRequest {
+  string email = 1;
+}
+
+message UserResponse {
+  bool exists = 1;
+}
