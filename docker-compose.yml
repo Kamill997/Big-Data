@@ -1,5 +1,6 @@
 version: "3.9"
 services:
+
   user_db:
     image: mysql:8.0
     container_name: container_user_db
@@ -10,7 +11,14 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - user_db_data:/var/lib/mysql
+      - ./Database/user_db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD" ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+   # networks:
+    #  -userNetwork:
 
   data_db:
     image: mysql:8.0
@@ -22,15 +30,33 @@ services:
     ports:
       - "3307:3306"
     volumes:
-      - data_db_data:/var/lib/mysql
-  #client:
+      - ./Database/data_db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+   # networks:
+    #  -dataNetwork:
+
+
+  #user_manager:
   #  build: user_manager
     #container_name: container_user
+  #networks:
+    #userNetwork
+    #InternalNetwork
 
-  #server:
+
+  #data_collector:
     #build: data_collector
     #container_name: container_data
+    #networks:
+      #dataNetwork
+      #InternalNetwork
 
-volumes:
-  user_db_data:
-  data_db_data:
+networks:
+  dataNetwork:
+  userNetwork:
+  InternalNetwork:
+    driver: bridge
