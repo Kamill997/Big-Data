@@ -17,7 +17,7 @@ def haversine(lat1, lon1, lat2, lon2):
 # ===============================
 # CARICA DATABASE AEROPORTI
 # ===============================
-airports = pd.read_csv("airports.csv", low_memory=False)
+airports = pd.read_csv("../airports.csv", low_memory=False)
 airports = airports[airports["type"].isin(["medium_airport", "large_airport"])]
 airports = airports[["name", "iata_code", "icao_code", "latitude_deg", "longitude_deg"]]
 
@@ -47,7 +47,7 @@ def nearest_airport(lat, lon, max_distance_km=15):
 # 1️⃣ CHIAMATA API OPENSKY
 # =========================================
 print("📡 Richiesta dati da OpenSky...")
-url = "https://opensky-network.org/api/flights/arrival"
+url = "https://opensky-network.org/api/states/all"
 response = requests.get(url)
 
 if response.status_code != 200:

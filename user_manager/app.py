@@ -1,34 +1,44 @@
-from flask import Flask,request,jsonify
+from database import init_db
+import os
+from flask import Flask,jsonify,request
 import mysql.connector
 app = Flask(__name__)
+
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_USER = "root"
+DB_PASSWORD = "root"
+DB_NAME = "user_db"
 
 # Connessione al DB
 def connect_db():
     return mysql.connector.connect(
-    host="localhost",
-    port=3306,
-    user="root",
-    password="root",
-    database="user_db"
+        host=DB_HOST,
+        #port=3306,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME
 )
 
 @app.get("/")
 def index():
-    return "ciao a tutti"
+    return "User Manager Service is running"
+
 @app.post("/register")
 def register():
     data=request.json
 
+    #id=data.get("id")
     email=data.get("email")
     name=data.get("name")
     surname=data.get("surname")
 
-    if not email:
-        return jsonify({"error": "Email obbligatorie"}), 400
-
+    if not email or not name or not surname:
+        return jsonify({"error": "Inserire obblgiatoriamente tutti i campi"}), 400
     #Effettuo connessione al DB e poi creo oggetto "cursor" per poter fare le operazioni SQL
     db=connect_db()
     cursor = db.cursor()
+
+    #cursor.execute("SELECT esito FROM user_requests WHERE id=%s", (id,))
 
     check_email= "SELECT email FROM users WHERE email=%s"
     cursor.execute(check_email,(email,))  #inserisco virgola perchè viene vista come stringa e non come lista
@@ -90,4 +100,5 @@ def delete():
 
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True)
