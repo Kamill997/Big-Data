@@ -1,0 +1,90 @@
+version: "3.9"
+services:
+  user_db:
+    image: mysql:8.0
+    container_name: container_user_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: user_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./database/user_db.sql:/docker-entrypoint-initdb.d/user.sql
+      #- user_db_data:/var/lib/mysql
+    networks:
+      - user_net
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      #- dsbd_net
+
+  data_db:
+    image: mysql:8.0
+    container_name: container_data_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: data_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./database/data_db.sql:/docker-entrypoint-initdb.d/data.sql
+      #- data_db_data:/var/lib/mysql
+    networks:
+      - data_net
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user_manager:
+      build: ./user_manager
+      container_name: container_user_manager
+      ports:
+        - "5001:5000"
+      environment:
+        - DB_HOST=user_db
+      depends_on:
+        user_db:
+          condition: service_healthy
+      networks:
+        - user_net  # Per parlare col SUO database
+        - grpc_net  # Per ricevere chiamate dal Data Collector
+
+  data_collector:
+    build: ./data_collector
+    container_name: container_data_collector
+    ports:
+      - "5002:5000"
+    environment:
+      - DB_HOST=data_db
+    depends_on:
+      data_db:
+        condition: service_healthy
+      user_manager:
+        condition: service_started
+    networks:
+      - data_net  # Per parlare col SUO database
+      - grpc_net  # Per chiamare lo User Manager
+    #client:
+    #  build: user_manager
+    #container_name: container_user
+
+    #server:
+    #build: data_collector
+    #container_name: container_data
+networks:
+  user_net:
+    driver: bridge
+  data_net:
+    driver: bridge
+  grpc_net:
+    driver: bridge
+
+volumes:
+  user_db_data:
+  data_db_data:

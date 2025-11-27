@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Big Data.iml" filepath="$PROJECT_DIR$/Big Data.iml" />
+      <module fileurl="file://$PROJECT_DIR$/data_collector/data_collector.iml" filepath="$PROJECT_DIR$/data_collector/data_collector.iml" />
+      <module fileurl="file://$PROJECT_DIR$/user_manager/user_manager.iml" filepath="$PROJECT_DIR$/user_manager/user_manager.iml" />
     </modules>
   </component>
 </project>
