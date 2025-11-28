@@ -1,46 +1,70 @@
-import requests
+import os
+import grpc
+import asyncio
+from database import init_db
+from flask import Flask,request,jsonify
+import user_service_pb2
+import user_service_pb2_grpc
+import mysql.connector
 import json
 
-with open("../credentials.json", "r") as file:
-    credentials = json.load(file)
-    CLIENT_ID = credentials["clientId"]
-    CLIENT_SECRET = credentials["clientSecret"]
-url = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token"
+app = Flask(__name__)
 
-# Dati da inviare come form
-data = {
-    "grant_type": "client_credentials",
-    "client_id": CLIENT_ID,
-    "client_secret": CLIENT_SECRET
-}
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_USER = "root"
+DB_PASSWORD = "root"
+DB_NAME = "data_db"
 
-# POST request
-response = requests.post(url, data)
+def connect_db():
+    return mysql.connector.connect(
+        host=DB_HOST,
+        #port=3306,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME
+    )
 
-# Controlla che la richiesta sia andata a buon fine
-if response.status_code == 200:
-    token = response.json().get("access_token")
-    print("Il token è:", token)
-else:
-    print("Errore:", response.status_code, response.text)
 
-richiesta_dati = {
-    "airport": "KLAS",            # aeroporto di Francoforte
-    "begin": 1763567460,          # timestamp UNIX inizio
-    "end": 1763653860             # timestamp UNIX fine
-    }
+async def verifica_email_grpc(email: str):
+    try:
+        async with grpc.aio.insecure_channel("container_user_manager:50051") as channel:
+            stub = user_service_pb2_grpc.UserServiceStub(channel)
+            richiesta = await stub.VerificaEmail(
+                user_service_pb2.EmailDaVerificare(email=email)
+            )
+            return richiesta.esiste
+    except grpc.RpcError as e:
+        return False
 
-# Header con Authorization Bearer
-headers = {
-    "Authorization": f"Bearer {token}"
-}
+@app.route('/sottoscriviInteresse', methods=['POST'])
+async def sottoscriviInteresse():
+    data=request.json
+    email=data.get("email")
+    if not email:
+        return jsonify({"success": False,"message": "Email mancante"}), 400
+    esitoVerifica=await verifica_email_grpc(email)
+    if esitoVerifica:
+        interessi=data.get("interessi")
+        if not interessi:
+            return jsonify({"success": False,"message": "Interesse mancante"}), 400
+        db=connect_db()
+        cursor=db.cursor()
 
-# Richiesta GET
-response = requests.get("https://opensky-network.org/api/flights/arrival", headers=headers, params=richiesta_dati)
-# Controllo della risposta
-if response.status_code == 200:
-    data = response.json()
-    # Stampa JSON in modo leggibile
-    print(json.dumps(data, indent=4))
-else:
-    print("Errore:", response.status_code, response.text)
+        try:
+            for interesse in interessi:
+                insert="""INSERT INTO user_interest (email, airport_code) VALUES (%s, %s)"""
+                cursor.execute(insert, (email, interesse))
+            db.commit()
+            return jsonify({"message": "Tutti gli interessi sono stati registrati"})
+        except Exception as e:
+            db.rollback()
+            return jsonify({"error": f"Qualcosa è andato storto, interessi non registrati"}), 400
+        finally:
+            cursor.close()
+            db.close()
+    else:
+        return jsonify({"error": f"L'email non è stata mai registrata"}), 400
+
+if __name__ == "__main__":
+    init_db()
+    app.run(host="0.0.0.0", port=5000, debug=True)

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package userservice;
+
+message EmailDaVerificare {
+  string email = 1;
+}
+
+message EsitoVerifica {
+  bool esiste = 1;
+}
+
+service UserService {
+  rpc VerificaEmail(EmailDaVerificare) returns (EsitoVerifica);
+}

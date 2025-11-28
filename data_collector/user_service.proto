@@ -8,7 +8,6 @@ message EmailDaVerificare {
 
 message EsitoVerifica {
   bool esiste = 1;
-  string esito = 2;
 }
 
 service UserService {
