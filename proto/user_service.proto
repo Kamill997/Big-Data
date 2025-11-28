@@ -1,9 +1,9 @@
 syntax = "proto3";
 
-package user_manager;
+package user_service;
 
 // Servizio per la verifica degli utenti
-service UserManager {
+service UserService {
   // Funzione chiamata dal Data Collector
   rpc VerifyUser (UserRequest) returns (UserResponse);
 }

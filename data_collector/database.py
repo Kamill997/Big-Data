@@ -16,7 +16,7 @@ def get_db_connection():
             print(f"Tentativo di connessione a {DB_HOST}...")
             conn = mysql.connector.connect(
                 host=DB_HOST,
-                port=3306,
+                #port=3306,
                 user=DB_USER,
                 password=DB_PASSWORD,
                 database=DB_NAME
@@ -55,12 +55,13 @@ def init_db():
         cursor.execute("""
                        CREATE TABLE IF NOT EXISTS flights (
                             id INT AUTO_INCREMENT PRIMARY KEY,
-                            icao_flight VARCHAR(20) NOT NULL,
-                            icao_airport VARCHAR(10) NOT NULL,
+                            interested_ICAO VARCHAR(100),
+                            ICAO_flight VARCHAR(20) NOT NULL,
                             origin_country VARCHAR(50) NOT NULL,
                             departure_time BIGINT,
                             arrival_time BIGINT,
-                            is_arrival BOOLEAN
+                            is_arrival BOOLEAN,
+                            stored_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                        )
                        """)
 
@@ -76,6 +77,3 @@ def init_db():
     except Exception as e:
         print(f"Errore fatale durante l'init_db: {e}")
         exit(1) # Esce con errore per bloccare il container se il DB fallisce
-
-if __name__ == "__main__":
-    init_db()

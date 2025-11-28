@@ -52,7 +52,7 @@ def init_db():
 
         # 4. Tabella requestId (Nuova richiesta)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS requestId (
+            CREATE TABLE IF NOT EXISTS requestID (
                 id VARCHAR(100) PRIMARY KEY,
                 esito_richiesta VARCHAR(100)
             )
