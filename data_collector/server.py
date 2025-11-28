@@ -27,7 +27,7 @@ def connect_db():
 
 async def verifica_email_grpc(email: str):
     try:
-        async with grpc.aio.insecure_channel("container_user_manager:50051") as channel:
+        async with grpc.aio.insecure_channel("container_user_manager:50051 ") as channel:
             stub = user_service_pb2_grpc.UserServiceStub(channel)
             richiesta = await stub.VerificaEmail(
                 user_service_pb2.EmailDaVerificare(email=email)
@@ -49,13 +49,18 @@ async def sottoscriviInteresse():
             return jsonify({"success": False,"message": "Interesse mancante"}), 400
         db=connect_db()
         cursor=db.cursor()
-
+        risultato_operazione = []
         try:
             for interesse in interessi:
-                insert="""INSERT INTO user_interest (email, airport_code) VALUES (%s, %s)"""
-                cursor.execute(insert, (email, interesse))
+                cursor.execute("SELECT * FROM user_interest WHERE airport_code=%s and email=%s", (interesse,email))
+                if cursor.fetchone() is None:
+                    insert="""INSERT INTO user_interest (email, airport_code) VALUES (%s, %s)"""
+                    cursor.execute(insert, (email, interesse))
+                    risultato_operazione.append({"message":f"L'interesse {interesse} è stato registrato correttamente"})
+                else:
+                    risultato_operazione.append({"message":f"L'interesse {interesse} era stato già indicato"})
             db.commit()
-            return jsonify({"message": "Tutti gli interessi sono stati registrati"})
+            return jsonify({"Eisto operazione": risultato_operazione})
         except Exception as e:
             db.rollback()
             return jsonify({"error": f"Qualcosa è andato storto, interessi non registrati"}), 400
@@ -63,7 +68,40 @@ async def sottoscriviInteresse():
             cursor.close()
             db.close()
     else:
-        return jsonify({"error": f"L'email non è stata mai registrata"}), 400
+        return jsonify({"error": f"L'email non è stata mai registrata"}), 422
+
+@app.route('/eliminaInteresse',methods=['POST'])
+async def eliminaInteresse():
+    data=request.json
+    email=data.get("email")
+    if email is None:
+        return jsonify({"Error":"Non hai indicato un email"}), 400
+    esitoVerifica=await verifica_email_grpc(email)
+    if esitoVerifica:
+        interessi=data.get("interessi")
+        if not interessi:
+            return jsonify({"Error":"Non hai indicato un interesse"}), 400
+        db=connect_db()
+        cursor=db.cursor()
+        risultato_operazione = []
+        try:
+            for interesse in interessi:
+                cursor.execute("SELECT * FROM user_interest WHERE email=%s and airport_code=%s", (email,interesse))
+                if cursor.fetchone():
+                    cursor.execute("DELETE FROM user_interest WHERE email=%s AND airport_code=%s", (email,interesse))
+                    risultato_operazione.append({"Message":f"L'interesse {interesse} è stato eliminato"})
+                else:
+                    risultato_operazione.append({"Message": f"L'interesse {interesse} non è presente"})
+            db.commit()
+            return jsonify({"Esito operazione": risultato_operazione})
+        except Exception as e:
+            db.rollback()
+            return jsonify({"Error":f"Qualcosa è andato storto e gli interessi non sono stati eliminati"})
+        finally:
+            cursor.close()
+            db.close()
+    else:
+        return jsonify({"Error":"Email non registrata"}),422
 
 if __name__ == "__main__":
     init_db()

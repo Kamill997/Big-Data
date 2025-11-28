@@ -24,11 +24,6 @@ def connect_db():
         database=DB_NAME
     )
 
-@app.get("/")
-def index():
-    return "User Manager Service is running"
-
-
 class UserService(user_service_pb2_grpc.UserServiceServicer):
     def VerificaEmail(self, request, context):
         self.db = connect_db()
