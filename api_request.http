@@ -1,0 +1,69 @@
+### GET request to example server
+GET https://examples.http-client.intellij.net/get
+    ?generated-in=IntelliJ IDEA
+
+###
+#http### Test 1: Registra utente con ID casuale (mario.rossi)
+#Utente registrato correttamente
+POST http://127.0.0.1:5001/register
+Content-Type: application/json
+
+{
+  "id": "{{$uuid}}",
+  "email": "mario.rossi@email.it",
+  "name": "Mario",
+  "surname": "Rossi"
+}
+
+###
+
+### Test 2: Registra stesso utente con ID diverso (test duplicato email)
+#Utente già registrato
+POST http://127.0.0.1:5001/register
+Content-Type: application/json
+
+{
+  "id": "{{$uuid}}",
+  "email": "mario.rossi@email.it",
+  "name": "Mario",
+  "surname": "Rossi"
+}
+
+###
+
+### Test 3: Registra utente con ID fisso (luigi.verdi)
+
+POST http://127.0.0.1:5001/register
+Content-Type: application/json
+
+{
+  "id": "test-123",
+  "email": "luigi.verdi@email.it",
+  "name": "Luigi",
+  "surname": "Verdi"
+}
+
+###
+
+### Test 4: Riprova con stesso ID (test idempotenza)
+
+POST http://127.0.0.1:5001/register
+Content-Type: application/json
+
+{
+  "id": "test-123",
+  "email": "luigi.verdi@email.it",
+  "name": "Luigi",
+  "surname": "Verdi"
+}
+
+###
+
+### Test 5: Elimina utente
+
+DELETE http://127.0.0.1:5001/delete
+Content-Type: application/json
+
+{
+  "email": "luigi.verdi@email.it"
+}
