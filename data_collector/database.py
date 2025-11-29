@@ -43,9 +43,9 @@ def init_db():
         cursor.execute("""
                        CREATE TABLE IF NOT EXISTS user_interest (
                                 id INT AUTO_INCREMENT PRIMARY KEY,
-                                user_email VARCHAR(255),
+                                email VARCHAR(255),
                                 airport_code VARCHAR(10),
-                                UNIQUE(user_email, airport_code)
+                                UNIQUE(email, airport_code)
                        )
                        """)
 
