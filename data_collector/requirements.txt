@@ -3,4 +3,5 @@ mysql-connector-python
 grpcio
 grpcio-tools
 requests
-apscheduler
+#apscheduler
+schedule
