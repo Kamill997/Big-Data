@@ -67,3 +67,27 @@ Content-Type: application/json
 {
   "email": "luigi.verdi@email.it"
 }
+
+###
+
+### Test 6: SottoscriviInterssi
+
+POST http://localhost:5002/sottoscriviInteresse
+Content-Type: application/json
+
+{
+    "email": "mario.rossi@email.it",
+    "interessi": ["LIRF", "EDDF"]
+}
+
+###
+
+## Test 7: Elimina Interesse
+
+DELETE http://localhost:5002/eliminaInteresse
+Content-Type: application/json
+
+{
+    "email": "mario.rossi@email.it",
+    "interessi": ["LIRF"]
+}
