@@ -25,8 +25,8 @@ def connect_db():
         database=DB_NAME
 )
 
-class UserService(user_service_pb2.UserServiceServicer):
-    def verify_user(self,request,context):
+class UserService(user_service_pb2_grpc.UserServiceServicer):
+    def VerifyUser(self,request,context):
         email=request.email
         print(f"[gRPC] Richiesta verifica per: {email}")
 
@@ -163,7 +163,7 @@ def delete():
 
 if __name__ == "__main__":
     init_db()
-    grpc_thread = threading.Thread(target=serve_grpc, daemon=True)
+    grpc_thread = threading.Thread(target=server(), daemon=True)
     grpc_thread.start()
     app.run(host="0.0.0.0", port=5000, debug=True)
     #app.run(debug=True)
