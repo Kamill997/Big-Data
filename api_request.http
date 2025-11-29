@@ -76,8 +76,8 @@ POST http://localhost:5002/sottoscriviInteresse
 Content-Type: application/json
 
 {
-    "email": "mario.rossi@email.it",
-    "interessi": ["LIRF", "EDDF"]
+    "email": "angelo.macchiavelli@email.it",
+    "interessi": ["LIRF", "EDDF","LSZH","LSGG","EDDM"]
 }
 
 ###
@@ -89,5 +89,5 @@ Content-Type: application/json
 
 {
     "email": "mario.rossi@email.it",
-    "interessi": ["LIRF"]
+    "interessi": ["LIRF","EDDF","LSZH","LSGG"]
 }

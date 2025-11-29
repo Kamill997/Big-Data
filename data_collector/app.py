@@ -1,3 +1,4 @@
+import logging
 import os
 import grpc
 import schedule
@@ -20,26 +21,29 @@ DB_PASSWORD = "root"
 DB_NAME = "data_db"
 
 OPENSKY_API_URL = "https://opensky-network.org/api/flights"
+OPENSKY_TOKEN_URL = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token"
 
 CREDENTIALS_FILE = "/app/credentials.json"
+
+CLIENT_ID = None
+CLIENT_SECRET = None
+
 try:
     if os.path.exists(CREDENTIALS_FILE):
         with open(CREDENTIALS_FILE, 'r') as f:
             creds = json.load(f)
+            # Mappiamo le chiavi come nel tuo codice originale
+            CLIENT_ID = creds.get("clientId")
+            CLIENT_SECRET = creds.get("clientSecret")
 
-            # --- MODIFICA QUI ---
-            # Mappiamo il tuo "clientId" nello username
-            # E il tuo "clientSecret" nella password
-            OPENSKY_USER = creds.get("clientId")
-            OPENSKY_PASS = creds.get("clientSecret")
-
-            OPENSKY_USER = None  # Forza anonimo
-            OPENSKY_PASS = None  # Forza anonimo
-            print(f"[Config] Credenziali caricate: {OPENSKY_USER}")
+            if CLIENT_ID and CLIENT_SECRET:
+                logging.info(f"Client ID caricato: {CLIENT_ID}")
+            else:
+                logging.warning("File credenziali presente ma clientId o clientSecret mancanti.")
     else:
-        print(f"[Config] File {CREDENTIALS_FILE} non trovato. Uso modalità anonima.")
+        logging.warning("File credenziali non trovato.")
 except Exception as e:
-    print(f"[Config] Errore lettura credentials.json: {e}")
+    logging.error(f"Errore lettura credenziali: {e}")
 
 def connect_db():
     return mysql.connector.connect(
@@ -49,20 +53,6 @@ def connect_db():
         password=DB_PASSWORD,
         database=DB_NAME
     )
-
-
-# --- 1. CLIENT gRPC (SINCRONO) ---
-#def verify_email_grpc(email: str):
-   # try:
-   #     # Usa insecure_channel normale (non aio/async)
-   #     with grpc.insecure_channel("container_user_manager:50051") as channel:
-   #         stub = user_service_pb2_grpc.UserServiceStub(channel)
-   #         # Chiamiamo il metodo VerifyUser definito nel proto
-  #          response = stub.VerifyUser(user_service_pb2.UserRequest(email=email))
- #           return response.exists
- #   except grpc.RpcError as e:
- #       print(f"[gRPC Error] {e}")
-#        return False
 
 def verify_email_grpc(email: str):
 
@@ -74,22 +64,61 @@ def verify_email_grpc(email: str):
     except grpc.RpcError as e:
         return False
 
-#def airports_flights(airport_code,start_time,end_time):
- #   conn=connect_db()
-  #  cursor=conn.cursor()
+# --- HELPER AUTENTICAZIONE (La tua logica isolata) ---
+def get_opensky_headers():
+    """
+    Effettua la chiamata POST per ottenere il Bearer Token.
+    Restituisce il dizionario headers o None se fallisce.
+    """
+    if not CLIENT_ID or not CLIENT_SECRET:
+        logging.warning("[AUTH] Credenziali mancanti, procedo in modalità anonima.")
+        return None
 
-   # auth=(OPENSKY_USER,OPENSKY_PASS) if OPENSKY_USER and OPENSKY_PASS else None
+    logging.info(f"[AUTH DEBUG] Sto usando CLIENT_ID='{CLIENT_ID}'")
 
-def download_flights_for_airport(airport_code, start_time, end_time):
+    data = {
+        "grant_type": "client_credentials",
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET
+    }
+
+    try:
+        logging.info("[AUTH DEBUG] Invio richiesta token a OpenSky...")
+        # Chiamata per ottenere il token
+        response = requests.post(OPENSKY_TOKEN_URL, data=data, timeout=10)
+
+        logging.info(f"[AUTH DEBUG] Status Token Response: {response.status_code}")
+        logging.info(f"[AUTH DEBUG] Body Token Response: {response.text[:200]}...")
+
+        if response.status_code == 200:
+            token = response.json().get("access_token")
+            # logging.info(f"[AUTH] Token ottenuto con successo: {token[:10]}...") # Log parziale per sicurezza
+            return {"Authorization": f"Bearer {token}"}
+        else:
+            logging.error(f"[AUTH] Errore richiesta token: {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        logging.error(f"[AUTH] Eccezione richiesta token: {e}")
+        return None
+
+def airports_flights(airport_code, start_time, end_time):
     """
     Funzione helper che scarica SIA arrivi CHE partenze per un singolo aeroporto
     e li salva nel DB. Viene chiamata sia dal ciclo sia dall'inserimento immediato.
     """
+    print(f"[DEBUG] Inizio download per aeroporto {airport_code}")
+
     conn = connect_db()
     cursor = conn.cursor()
 
+    headers = get_opensky_headers()
+
+    if headers:
+        print(f"[AUTH DEBUG] Sto usando Bearer Token negli headers.")
+    else:
+        print(f"[AUTH DEBUG] Nessun token, sto chiamando OpenSky in modalità ANONIMA.")
     # Auth tuple per requests (se le credenziali ci sono)
-    auth = (OPENSKY_USER, OPENSKY_PASS) if OPENSKY_USER and OPENSKY_PASS else None
+# = (OPENSKY_USER, OPENSKY_PASS) if OPENSKY_USER and OPENSKY_PASS else None
 
     # Tipi di volo da scaricare
     endpoints = [
@@ -109,10 +138,17 @@ def download_flights_for_airport(airport_code, start_time, end_time):
 
         try:
             # --- DEBUG AGGIUNTO ---
-            print(f"[DEBUG AUTH] User inviato: '{OPENSKY_USER}' | Pass inviata: '{OPENSKY_PASS}'")
+            #print(f"[DEBUG AUTH] User inviato: '{OPENSKY_USER}' | Pass inviata: '{OPENSKY_PASS}'")
             # --- DEBUG AGGIUNTO ---
             print(f"[OpenSky] Request {suffix.upper()} per {airport_code}...")
-            response = requests.get(url, params=params, auth=auth, timeout=10)
+            print(f"[AUTH DEBUG] Headers inviati: {headers}")
+            print(f"[AUTH DEBUG] URL chiamato: {url}")
+            print(f"[AUTH DEBUG] Parametri: {params}")
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+
+
+            print(f"[AUTH DEBUG] STATUS RESPONSE: {response.status_code}")
+            print(f"[AUTH DEBUG] RESPONSE BODY print([AUTH DEBUG] RESPONSE BODY (FULL JSON):{response.text}")
 
             if response.status_code == 200:
                 flights = response.json()
@@ -161,10 +197,10 @@ def fetch_opensky_data_cycle():
 
     # Intervallo temporale (Ultima ora)
     end_time = int(time.time())
-    start_time = end_time - 3600
+    start_time = end_time - 24 * 60 * 60
 
     for (airport_code,) in airports:
-        download_flights_for_airport(airport_code, start_time, end_time)
+        airports_flights(airport_code, start_time, end_time)
 
     print("--- [Ciclo] Fine aggiornamento globale ---")
 
@@ -244,7 +280,7 @@ def sottoscriviInteresse():
                         for apt in da_scaricare_subito:
                             print(f"[THREAD] Chiamo download_flights per {apt}")
                             # Assicurati che download_flights_for_airport sia definita fuori!
-                            download_flights_for_airport(apt, start_t, end_t)
+                            airports_flights(apt, start_t, end_t)
                         print("[THREAD] Finito.")
                     except Exception as thread_e:
                         print(f"[THREAD ERROR] Errore nel thread: {thread_e}")

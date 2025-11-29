@@ -52,18 +52,18 @@ def init_db():
         print("- Tabella 'user_interest' verificata.")
 
         # 2. Tabella flights
+
+
         cursor.execute("""
-                       CREATE TABLE IF NOT EXISTS flights (
-                            id INT AUTO_INCREMENT PRIMARY KEY,
-                            interested_ICAO VARCHAR(100),
-                            ICAO_flight VARCHAR(20) NOT NULL,
-                            origin_country VARCHAR(50) NOT NULL,
-                            departure_time BIGINT,
-                            arrival_time BIGINT,
-                            is_arrival BOOLEAN,
-                            stored_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                       CREATE TABLE IF NOT EXISTS flights(
+                           id INT AUTO_INCREMENT PRIMARY KEY,
+                           aereoporto_partenza VARCHAR(20),
+                           aereoporto_arrivo   VARCHAR(20),
+                           icao_volo           VARCHAR(50),
+                           orario_partenza     BIGINT,
+                           orario_arrivo       BIGINT
                        )
-                       """)
+                    """)
 
         print("- Tabella 'flights' verificata.")
 
