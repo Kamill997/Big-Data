@@ -88,3 +88,63 @@ networks:
 volumes:
   user_db_data:
   data_db_data:
+
+
+def sottoscriviInteresse():
+    data=request.json
+    email=data.get("email")
+    if not email:
+        return jsonify({"success": False,"message": "Email mancante"}), 400
+    esitoVerifica=verify_email_grpc(email)
+
+    if esitoVerifica:
+        interessi=data.get("interessi")
+        if not interessi:
+            return jsonify({"success": False,"message": "Interesse mancante"}), 400
+        db=connect_db()
+        cursor=db.cursor()
+        risultato_operazione = []
+        da_scaricare_subito = []
+
+        try:
+            for interesse in interessi:
+                cursor.execute("SELECT * FROM user_interest WHERE airport_code=%s and email=%s", (interesse,email))
+                if cursor.fetchone() is None:
+                    insert="""INSERT INTO user_interest (email, airport_code) VALUES (%s, %s)"""
+                    cursor.execute(insert, (email, interesse))
+                    risultato_operazione.append({"message":f"L'interesse {interesse} è stato registrato correttamente"})
+                    da_scaricare_subito.append(interesse)
+                else:
+                    risultato_operazione.append({"message":f"L'interesse {interesse} era stato già indicato"})
+            db.commit()
+
+            if da_scaricare_subito:
+                print(f"[TEST] Avvio download immediato per: {da_scaricare_subito}")
+
+                # Impostiamo l'intervallo (es. ultime 2 ore)
+                end_t = int(time.time())
+                start_t = end_t - 7200
+
+                def quick_fetch():
+                    # Questo thread userà la sua connessione DB interna
+                    for apt in da_scaricare_subito:
+                        # Assicurati che questa funzione sia definita nel tuo file!
+                        download_flights_for_airport(apt, start_t, end_t)
+
+                # Avviamo il thread senza bloccare la risposta all'utente
+                thread = threading.Thread(target=quick_fetch)
+                thread.daemon = True # Si chiude se il programma principale si chiude
+                thread.start()
+            # =================================================================
+
+            # 3. RESTITUIAMO LA RISPOSTA
+            return jsonify({"Esito operazione": risultato_operazione})
+
+        except Exception as e:
+            db.rollback()
+            return jsonify({"error": f"Qualcosa è andato storto, interessi non registrati"}), 400
+        finally:
+            cursor.close()
+            db.close()
+    else:
+        return jsonify({"error": f"L'email non è stata mai registrata"}), 422##
