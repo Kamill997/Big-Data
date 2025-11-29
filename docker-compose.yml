@@ -54,24 +54,24 @@ services:
       - user_net
       - grpc_net
 
-  # ==========================================================
-  # DATA COLLECTOR MOMENTANEAMENTE DISATTIVATO
-  # ==========================================================
-  # data_collector:
-  #   build: ./data_collector
-  #   container_name: container_data_collector
-  #   ports:
-  #     - "5002:5000"
-  #   environment:
-  #     - DB_HOST=data_db
-  #   depends_on:
-  #     data_db:
-  #       condition: service_healthy
-  #     user_manager:
-  #       condition: service_started
-  #   networks:
-  #     - data_net
-  #     - grpc_net
+  data_collector:
+     build: ./data_collector
+     container_name: container_data_collector
+     ports:
+       - "5002:5000"
+     environment:
+       - PYTHONUNBUFFERED=1
+       - DB_HOST=data_db
+     volumes:
+       - ./credentials.json:/app/credentials.json:ro
+     depends_on:
+       data_db:
+         condition: service_healthy
+       user_manager:
+         condition: service_started
+     networks:
+       - data_net
+       - grpc_net
 
 networks:
   user_net:
