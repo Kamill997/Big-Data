@@ -11,7 +11,6 @@ services:
       - "3311:3306"
     volumes:
       - ./mysql_user:/var/lib/mysql
-     # - ./database/user_db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - user_net
     healthcheck:
@@ -31,7 +30,6 @@ services:
       - "3307:3306"
     volumes:
       - ./mysql_data:/var/lib/mysql
-     # - ./database/data_db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - data_net
     healthcheck:
@@ -60,7 +58,6 @@ services:
      ports:
        - "5002:5000"
      environment:
-       - PYTHONUNBUFFERED=1
        - DB_HOST=data_db
      volumes:
        - ./credentials.json:/app/credentials.json:ro

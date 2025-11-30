@@ -70,7 +70,7 @@ Content-Type: application/json
 
 ###
 
-### Test 6: SottoscriviInterssi
+### Test 6: SottoscriviInterssi (PROVA GRPC)
 
 POST http://localhost:5002/sottoscriviInteresse
 Content-Type: application/json
@@ -82,12 +82,31 @@ Content-Type: application/json
 
 ###
 
-## Test 7: Elimina Interesse
+### Test 7: SottoscriviInterssi "LIRF","EDDF","LSZH","LSGG","EDDM","LIML","LIMC","LIME"]
+
+POST http://localhost:5002/sottoscriviInteresse
+Content-Type: application/json
+
+{
+  "email": "mario.rossi@email.it",
+  "interessi": ["OMDB","KATL","EDDF"]
+}
+
+
+###
+
+## Test 8: Elimina Interesse
 
 DELETE http://localhost:5002/eliminaInteresse
 Content-Type: application/json
 
 {
     "email": "mario.rossi@email.it",
-    "interessi": ["LIRF","EDDF","LSZH","LSGG"]
+    "interessi": ["OMDB","KATL","LIRF","EDDF","LSZH","LSGG","LSGG","EDDM","LIML","LIMC","LIME"]
 }
+
+###
+
+## TEST 9 DEBUG
+GET http://localhost:5002/debug/duplicati
+Content-Type: application/json

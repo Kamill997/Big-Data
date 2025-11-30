@@ -161,3 +161,103 @@ def sottoscriviInteresse():
                             stored_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                        )
                        """)
+
+
+
+
+
+
+
+
+def airports_flights(airport_code, start_time, end_time):
+
+    print(f"[DEBUG] Inizio download per aeroporto {airport_code}")
+
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    headers = get_opensky_headers()
+
+    # Se l'auth è fallita, rallentiamo drasticamente per non prendere 429
+    #if not headers:
+     #   print(f"[STOP] IMPOSSIBILE SCARICARE: Credenziali non valide o mancanti.")
+      #  print(f"[STOP] Senza token, OpenSky blocca l'IP (429). Salto il download.")
+        #time.sleep(5)
+        #return
+
+    # Tipi di volo da scaricare
+    endpoints = [
+        ("arrival", True),
+        ("departure", False)
+    ]
+    count_saved = 0
+
+    for suffix, is_arrival in endpoints:
+        url = f"{OPENSKY_API_URL}/{suffix}"
+        params = {
+            'airport': airport_code,
+            'begin': start_time,
+            'end': end_time
+        }
+
+        try:
+            print(f"[OpenSky] Request {suffix.upper()} per {airport_code}...")
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            print(f"[AUTH DEBUG] RESPONSE BODY print([AUTH DEBUG] RESPONSE BODY (FULL JSON):{response.text}")
+
+            if response.status_code == 200:
+                flights = response.json()
+                print(f"[OpenSky] Trovati {len(flights)} voli ({suffix})")
+
+                for flight in flights:
+                    # Dati dal JSON
+                    icao = flight.get('icao24')
+                    #depart_time = flight.get('estDepartureAirport')
+                    #arr_time = flight.get('estArrivalAirport')
+                    first_seen = flight.get('firstSeen')
+                    #last_seen = flight.get('lastSeen')
+
+                    cursor.execute("SELECT icao FROM flights WHERE icao=%s AND departure_time=%s", (icao,first_seen,))
+
+                    if cursor.fetchone():
+                        # Il volo esiste già, lo salto (o potrei aggiornarlo)
+                        continue
+
+                    # Inserimento nel DB (Flight Data)
+                    insert_flights = """
+                                     INSERT INTO flights
+                                     (icao, departure_airport, arrival_airport, departure_time, arrival_time)
+                                     VALUES (%s, %s, %s, %s, %s)
+                                     """
+                    valori = (
+                        flight.get('icao24'),
+                        flight.get('estDepartureAirport'),
+                        flight.get('estArrivalAirport'),
+                        flight.get('firstSeen'),
+                        flight.get('lastSeen'),
+                    )
+                    cursor.execute(insert_flights, valori)
+                    count_saved += 1
+                    #count_saved += len(flights)
+                    # Commit dopo ogni batch (arrival o departure)
+                conn.commit()
+            elif response.status_code == 401:
+                print(f"[OpenSky] ERRORE 401: Token non valido o scaduto! Resetto la cache.")
+                global CACHED_TOKEN
+                CACHED_TOKEN = None # Forzo il rinnovo al prossimo giro
+            elif response.status_code == 404:
+                print(f"[OpenSky] Nessun dato trovato per {airport_code} ({suffix})")
+            elif response.status_code == 429:
+                print(f"[OpenSky] ERRORE 429: Troppe richieste! Rallentare.")
+                time.sleep(10) # Pausa di emergenza lunga
+            else:
+                print(f"[OpenSky] Errore {response.status_code}: {response.text}")
+
+        except Exception as e:
+            print(f"[OpenSky] Errore connessione: {e}")
+
+        time.sleep(2)
+
+    cursor.close()
+    conn.close()
+    print(f"[OpenSky] {airport_code}: Salvati {count_saved} voli totali (Arr+Dep).")

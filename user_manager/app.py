@@ -163,7 +163,7 @@ def delete():
 
 if __name__ == "__main__":
     init_db()
-    grpc_thread = threading.Thread(target=server(), daemon=True)
+    grpc_thread = threading.Thread(target=server, daemon=True)
     grpc_thread.start()
     app.run(host="0.0.0.0", port=5000, debug=True)
     #app.run(debug=True)

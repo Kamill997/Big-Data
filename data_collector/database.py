@@ -57,11 +57,12 @@ def init_db():
         cursor.execute("""
                        CREATE TABLE IF NOT EXISTS flights(
                            id INT AUTO_INCREMENT PRIMARY KEY,
-                           aereoporto_partenza VARCHAR(20),
-                           aereoporto_arrivo   VARCHAR(20),
-                           icao_volo           VARCHAR(50),
-                           orario_partenza     BIGINT,
-                           orario_arrivo       BIGINT
+                           icao VARCHAR(50),
+                           departure_airport VARCHAR(20),
+                           arrival_airport   VARCHAR(20),
+                           departure_time BIGINT,
+                           arrival_time  BIGINT,
+                           UNIQUE KEY unique_flight (icao, departure_time)
                        )
                     """)
 

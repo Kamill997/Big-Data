@@ -146,21 +146,32 @@ def airports_flights(airport_code, start_time, end_time):
         try:
             print(f"[OpenSky] Request {suffix.upper()} per {airport_code}...")
             response = requests.get(url, params=params, headers=headers, timeout=10)
-            print(f"[AUTH DEBUG] RESPONSE BODY (200 chars): {response.text[:200]}")
-
+            print(f"[AUTH DEBUG] RESPONSE BODY print([AUTH DEBUG] RESPONSE BODY (FULL JSON):{response.text}")
 
             if response.status_code == 200:
                 flights = response.json()
-                num_originali = len(flights)
                 print(f"[OpenSky] Trovati {len(flights)} voli ({suffix})")
 
-                flights=flights[:50]
-                print(f"[OpenSky] Trovati {num_originali} voli. Ne processo {len(flights)}.")
-
-                if not flights: continue
-
-                batch_voli=[]
                 for flight in flights:
+                    # Dati dal JSON
+                    icao = flight.get('icao24')
+                    #depart_time = flight.get('estDepartureAirport')
+                    #arr_time = flight.get('estArrivalAirport')
+                    first_seen = flight.get('firstSeen')
+                    #last_seen = flight.get('lastSeen')
+
+                    cursor.execute("SELECT icao FROM flights WHERE icao=%s AND departure_time=%s", (icao,first_seen,))
+
+                    if cursor.fetchone():
+                        # Il volo esiste già, lo salto (o potrei aggiornarlo)
+                        continue
+
+                    # Inserimento nel DB (Flight Data)
+                    insert_flights = """
+                                     INSERT INTO flights
+                                     (icao, departure_airport, arrival_airport, departure_time, arrival_time)
+                                     VALUES (%s, %s, %s, %s, %s)
+                                     """
                     valori = (
                         flight.get('icao24'),
                         flight.get('estDepartureAirport'),
@@ -168,34 +179,17 @@ def airports_flights(airport_code, start_time, end_time):
                         flight.get('firstSeen'),
                         flight.get('lastSeen'),
                     )
-                    batch_voli.append(valori)
-
-                if batch_voli:
-                    # Inserimento nel DB (Flight Data)
-                    insert_flights = """
-                                     INSERT INTO flights
-                                     (icao, departure_airport, arrival_airport, departure_time, arrival_time)
-                                     VALUES (%s, %s, %s, %s, %s)
-                                     ON DUPLICATE KEY UPDATE 
-                                         departure_airport=COALESCE(flights.departure_airport,VALUES(departure_airport)),
-                                         arrival_airport=COALESCE(flights.arrival_airport,values(arrival_airport)),
-                                         arrival_time=VALUES(arrival_time)
-                                     """
-
-                    print(f"[DB] Scrivo {len(batch_voli)} voli nel database...",flush=True)
-                    cursor.executemany(insert_flights, batch_voli)
-                    conn.commit()
-                    #count_saved += 1
-                    count_saved += len(batch_voli)
-                    print(f"[DB] Scrittura completata per {suffix}.",flush=True)
-
+                    cursor.execute(insert_flights, valori)
+                    count_saved += 1
+                    #count_saved += len(flights)
+                    # Commit dopo ogni batch (arrival o departure)
+                conn.commit()
             elif response.status_code == 401:
                 print(f"[OpenSky] ERRORE 401: Token non valido o scaduto! Resetto la cache.")
                 global CACHED_TOKEN
                 CACHED_TOKEN = None # Forzo il rinnovo al prossimo giro
             elif response.status_code == 404:
                 print(f"[OpenSky] Nessun dato trovato per {airport_code} ({suffix})")
-                pass
             elif response.status_code == 429:
                 print(f"[OpenSky] ERRORE 429: Troppe richieste! Rallentare.")
                 time.sleep(10) # Pausa di emergenza lunga
@@ -224,17 +218,17 @@ def fetch_opensky_data_cycle():
     conn.close()
 
     # Intervallo temporale (Ultima ora)
-    end_time = int(time.time())
-    start_time = end_time - 10400 #24 * 60 * 60
+    end_time = int(time.time()) - 86400
+    start_time = end_time - 7200 #24 * 60 * 60
 
     if not airports:
-        print("[Ciclo] Nessun interesse attivo.")
+        print("[Ciclo] Nessun interesse attivo. Dormo.")
         return
 
     for (airport_code,) in airports:
         airports_flights(airport_code, start_time, end_time)
-        print("[Ciclo] Pausa di 3s...")
-        time.sleep(3)
+        print("[Ciclo] Pausa di 5s...")
+        time.sleep(5)
 
     print("--- [Ciclo] Fine aggiornamento globale ---")
 
@@ -274,38 +268,19 @@ def sottoscriviInteresse():
             for interesse in interessi:
 
                 # QUERY DI CONTROLLO
-                #cursor.execute("SELECT * FROM user_interest WHERE airport_code=%s and email=%s", (interesse, email))
-                cursor.execute("INSERT IGNORE INTO user_interest (email, airport_code) VALUES (%s, %s)", (email, interesse))
+                cursor.execute("SELECT * FROM user_interest WHERE airport_code=%s and email=%s", (interesse, email))
 
-                if cursor.rowcount > 0:
-                    msg = f"Interesse {interesse} aggiunto."
-
-                # 2. LOGICA INTELLIGENTE: Devo scaricare i dati?
-                # Conto quanti utenti monitorano questo aeroporto ORA.
-                    cursor.execute("SELECT COUNT(*) FROM user_interest WHERE airport_code = %s", (interesse,))
-                    count = cursor.fetchone()[0]
-
-                # Se count è 1, significa che prima era 0. È NUOVO per il sistema!
-                    if count == 1:
-                        daScaricare.append(interesse)
-                        msg += " (Nuovo aeroporto -> Avvio download storico)"
-                    else:
-                        msg += " (Dati già presenti nel sistema)"
-                        ris.append(msg)
-                else:
-                    ris.append(f"Interesse {interesse} già presente per te.")
-
-                #if cursor.fetchone() is None:
+                if cursor.fetchone() is None:
                     # È NUOVO -> LO INSERISCO
-                #    cursor.execute("INSERT INTO user_interest (email, airport_code) VALUES (%s, %s)",(email, interesse))
-                #    ris.append({"message": f"L'interesse {interesse} è stato registrato correttamente"})
+                    cursor.execute("INSERT INTO user_interest (email, airport_code) VALUES (%s, %s)",(email, interesse))
+                    ris.append({"message": f"L'interesse {interesse} è stato registrato correttamente"})
                     # AGGIUNGO ALLA LISTA DOWNLOAD
-                #    daScaricare.append(interesse)
-                #    print(f"[DEBUG] {interesse} è nuovo -> Aggiunto alla coda di download.")
-                #else:
+                    daScaricare.append(interesse)
+                    print(f"[DEBUG] {interesse} è nuovo -> Aggiunto alla coda di download.")
+                else:
                     # ESISTEVA GIÀ -> NON LO SCARICO
-                 #   ris.append({"message": f"L'interesse {interesse} era stato già indicato"})
-                  #  print(f"[DEBUG] {interesse} esisteva già -> Niente download.")
+                    ris.append({"message": f"L'interesse {interesse} era stato già indicato"})
+                    print(f"[DEBUG] {interesse} esisteva già -> Niente download.")
 
             db.commit()
 
@@ -315,20 +290,20 @@ def sottoscriviInteresse():
             if daScaricare:
                 print(f"[TEST] Avvio thread per: {daScaricare}")
                 def quick_fetch():
-                    end_time = int(time.time())
-                    start_time = end_time - 10400   #24 * 60 * 60)
+                    end_time = int(time.time()) - 86400
+                    start_time = end_time - 7200   #24 * 60 * 60)
                     try:
                         print("[THREAD] Thread partito...")
-                        for inte in daScaricare:
-                            print(f"[THREAD] Chiamo download_flights per {inte}")
-                            airports_flights(inte, start_time, end_time)
+                        for apt in daScaricare:
+                            print(f"[THREAD] Chiamo download_flights per {apt}")
+                            airports_flights(apt, start_time, end_time)
                             time.sleep(2)
                         print("[THREAD] Finito.")
                     except Exception as thread_e:
                         print(f"[THREAD ERROR] Errore nel thread: {thread_e}")
 
-                thread = threading.Thread(target=quick_fetch, daemon=True)
-                #thread.daemon = True
+                thread = threading.Thread(target=quick_fetch)
+                thread.daemon = True
                 thread.start()
             else:
                 print("[DEBUG] Nessun nuovo interesse da scaricare.")
@@ -381,35 +356,6 @@ def eliminaInteresse():
             db.close()
     else:
         return jsonify({"Error":"Email non registrata"}),422
-
-@app.get('/debug/duplicati')
-def debug_duplicati():
-    """Endpoint per controllare voli duplicati"""
-    try:
-        db = connect_db()
-        cursor = db.cursor(dictionary=True)
-
-        # Cerca possibili duplicati
-        cursor.execute("""
-                       SELECT icao, departure_time, arrival_time, COUNT(*) as count
-                       FROM flights
-                       GROUP BY icao, departure_time, arrival_time
-                       HAVING COUNT(*) > 1
-                       ORDER BY count DESC
-                       """)
-
-        duplicati = cursor.fetchall()
-
-        cursor.close()
-        db.close()
-
-        return jsonify({
-            "duplicati_trovati": len(duplicati),
-            "duplicati": duplicati
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     time.sleep(5)
