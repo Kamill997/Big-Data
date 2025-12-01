@@ -45,6 +45,17 @@ class UserService(user_service_pb2_grpc.UserServiceServicer):
             print(f"[gRPC Error] {e}")
             return user_service_pb2.UserResponse(exists=False)
 
+async def removeInterest(email: str):
+    try:
+        async with grpc.aio.insecure_channel("container_data_collector:50051") as channel:
+            stub = user_service_pb2_grpc.UserServiceStub(channel)
+            request = await stub.EliminaInteresse(
+                user_service_pb2.EmailDaVerificare(email=email)
+            )
+            return request.UserResponse
+    except grpc.RpcError as e:
+        return False, str(e)
+
 def server():
     server=grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     user_service_pb2_grpc.add_UserServiceServicer_to_server(UserService(), server)
@@ -52,10 +63,6 @@ def server():
     print("gRPC running on port 50051")
     server.start()
     server.wait_for_termination()
-
-@app.get("/")
-def index():
-    return "User Manager Service is running"
 
 @app.post("/register")
 def register():
@@ -66,13 +73,13 @@ def register():
     name=data.get("name")
     surname=data.get("surname")
 
-    if not email or not name or not surname:
+    if not email or not name or not surname or not id:
         return jsonify({"error": "Inserire obblgiatoriamente tutti i campi"}), 400
 
-    #Effettuo connessione al DB e poi creo oggetto "cursor" per poter fare le operazioni SQL
     db=connect_db()
     cursor = db.cursor()
 
+    #Controllo se una data richiesta è già presente
     cursor.execute("SELECT esito_richiesta FROM requestID WHERE id=%s", (id,))
     esito=cursor.fetchone()
 
@@ -83,7 +90,6 @@ def register():
         return jsonify({"error": f"Richiesta già elaborata precedentemente. \n Esito:{esito[0]}"}), 400
 
     #verifica sulla mail (Solo se viene effettuta una nuova richiesta)
-
     cursor.execute("SELECT email FROM users WHERE email=%s",(email,))  #inserisco virgola perchè viene vista come stringa e non come lista
 
     if cursor.fetchone():
@@ -125,6 +131,7 @@ def register():
     finally:
         cursor.close()
         db.close()
+
 
 @app.delete("/delete")
 def delete():

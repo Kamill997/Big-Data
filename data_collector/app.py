@@ -123,13 +123,10 @@ def airports_flights(airport_code, start_time, end_time):
 
 
     # Tipi di volo da scaricare
-    endpoints = [
-        ("arrival", True),
-        ("departure", False)
-    ]
+    endpoints = [("arrival", True), ("departure", False)]
     count_saved = 0
 
-    for suffix, is_arrival in endpoints:
+    for suffix in endpoints:
         url = f"{OPENSKY_API_URL}/{suffix}"
         params = {
             'airport': airport_code,
@@ -217,7 +214,7 @@ def fetch_opensky_data_cycle():
     cursor = conn.cursor()
 
     cursor.execute("SELECT DISTINCT airport_code FROM user_interest")
-    airports = cursor.fetchall() # Ritorna lista di tuple [('LIRF',), ('EDDF',)]
+    airports = cursor.fetchall()
     cursor.close()
     conn.close()
 
@@ -237,9 +234,9 @@ def fetch_opensky_data_cycle():
     print("--- [Ciclo] Fine aggiornamento globale ---")
 
 def run_scheduler():
-    #schedule.every(12).hours.do(fetch_opensky_data_cycle)
+    schedule.every(12).hours.do(fetch_opensky_data_cycle)
     ## Per debug
-    schedule.every(10).minutes.do(fetch_opensky_data_cycle)
+    #schedule.every(10).minutes.do(fetch_opensky_data_cycle)
     while True:
         schedule.run_pending()
         time.sleep(1)

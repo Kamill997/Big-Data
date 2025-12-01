@@ -59,8 +59,6 @@ services:
        - "5002:5000"
      environment:
        - DB_HOST=data_db
-     volumes:
-       - ./credentials.json:/app/credentials.json:ro
      depends_on:
        data_db:
          condition: service_healthy

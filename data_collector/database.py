@@ -2,21 +2,19 @@ import mysql.connector
 import time
 import os
 
-# Configurazione DB (legge le env variables dal docker-compose)
+
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_USER = "root"
 DB_PASSWORD = "root"
 DB_NAME = "data_db"
 
 def get_db_connection():
-    """Prova a connettersi al database con un ciclo di retry."""
     retries = 5
     while retries > 0:
         try:
             print(f"Tentativo di connessione a {DB_HOST}...")
             conn = mysql.connector.connect(
                 host=DB_HOST,
-                #port=3306,
                 user=DB_USER,
                 password=DB_PASSWORD,
                 database=DB_NAME
@@ -37,7 +35,7 @@ def init_db():
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
         cursor.execute(f"USE {DB_NAME}")
 
-        print("Inizio creazione tabelle per Data DB...")
+        print("Inizio creazione tabelle per Data DB.")
 
         # 1. Tabella user_interest
         cursor.execute("""
@@ -48,8 +46,6 @@ def init_db():
                                 UNIQUE(email, airport_code)
                        )
                        """)
-
-        print("- Tabella 'user_interest' verificata.")
 
         # 2. Tabella flights
 
@@ -65,15 +61,12 @@ def init_db():
                        )
                     """)
 
-        print("- Tabella 'flights' verificata.")
-
-
         conn.commit()
         cursor.close()
         conn.close()
 
-        print("Inizializzazione Data DB completata con successo.")
+        print("Inizializzazione Data DB completata.")
 
     except Exception as e:
         print(f"Errore fatale durante l'init_db: {e}")
-        exit(1) # Esce con errore per bloccare il container se il DB fallisce
+        exit(1)
