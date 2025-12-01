@@ -42,10 +42,10 @@ def init_db():
         # 1. Tabella user_interest
         cursor.execute("""
                        CREATE TABLE IF NOT EXISTS user_interest (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        email VARCHAR(255),
-                        airport_code VARCHAR(10),
-                        UNIQUE(email, airport_code)
+                                                                    id INT AUTO_INCREMENT PRIMARY KEY,
+                                                                    email VARCHAR(255),
+                           airport_code VARCHAR(10),
+                           UNIQUE(email, airport_code)
                            )
                        """)
 
@@ -54,24 +54,26 @@ def init_db():
         # 2. Tabella flights
         cursor.execute("""
                        CREATE TABLE IF NOT EXISTS flights (
-                           id INT AUTO_INCREMENT PRIMARY KEY,
-                           icao_flight VARCHAR(20) NOT NULL,
-                           icao_airport VARCHAR(10) NOT NULL,
-                           origin_country VARCHAR(50) NOT NULL,
-                           departure_time BIGINT,
-                           arrival_time BIGINT,
-                           is_arrival BOOLEAN
+                                                              id INT AUTO_INCREMENT PRIMARY KEY,
+                                                              aereoporto_partenza VARCHAR(20) ,
+                           aereoporto_arrivo VARCHAR(10),
+                           icao_volo VARCHAR(50),
+                           orario_partenza VARCHAR(50),
+                           orario_arrivo VARCHAR(50)
+
                            )
                        """)
 
         print("- Tabella 'flights' verificata.")
 
 
+
+        print("Inizializzazione Data DB completata con successo.")
+
+
         conn.commit()
         cursor.close()
         conn.close()
-
-        print("Inizializzazione Data DB completata con successo.")
 
     except Exception as e:
         print(f"Errore fatale durante l'init_db: {e}")

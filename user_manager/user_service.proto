@@ -10,6 +10,12 @@ message EsitoVerifica {
   bool esiste = 1;
 }
 
+message EsitoEliminazione {
+  bool successo = 1;
+}
+
 service UserService {
   rpc VerificaEmail(EmailDaVerificare) returns (EsitoVerifica);
+  rpc EliminaInteresse(EmailDaVerificare) returns (EsitoEliminazione);
+
 }

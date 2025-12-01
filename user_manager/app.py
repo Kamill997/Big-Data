@@ -1,3 +1,4 @@
+import asyncio
 import threading
 from database import init_db
 import os
@@ -42,6 +43,16 @@ class UserService(user_service_pb2_grpc.UserServiceServicer):
                 esiste=False,
 
             )
+async def elimina_interessi_grpc(email: str):
+    try:
+        async with grpc.aio.insecure_channel("container_data_collector:50051") as channel:
+            stub = user_service_pb2_grpc.UserServiceStub(channel)
+            richiesta = await stub.EliminaInteresse(
+                user_service_pb2.EmailDaVerificare(email=email)
+            )
+            return richiesta.successo
+    except grpc.RpcError as e:
+        return False, str(e)
 
 def serve():
     port = '50051'
@@ -123,11 +134,16 @@ def rimozione():
         cursor = db.cursor()
         cursor.execute("SELECT * from users where email=%s", (email,))
         if cursor.fetchone() is None:
-            jsonify("Email non trovata")
             cursor.close()
             db.close()
             return jsonify({"message": "Utente non trovato"}), 400
         else:
+            try:
+                 successo = asyncio.run(elimina_interessi_grpc(email))
+            except Exception as e:
+                return jsonify({"error": f"Errore gRPC: {str(e)}"}), 500
+            if not successo:
+                 return jsonify({"error": f"Non è stato possibile eliminare gli interessi, l'utente non è stato eliminato"}), 500
             try:
                 cursor.execute("DELETE FROM users WHERE email=%s", (email,))
                 db.commit()
@@ -136,7 +152,7 @@ def rimozione():
             finally:
                 cursor.close()
                 db.close()
-                return jsonify({"message": "Utente cancellato correttamente"})
+                return jsonify({"message": f"Utente cancellato correttamente{successo}"})
 
 if __name__ == "__main__":
     init_db()

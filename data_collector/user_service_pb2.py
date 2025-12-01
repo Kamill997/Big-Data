@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12user_service.proto\x12\x0buserservice\"\"\n\x11\x45mailDaVerificare\x12\r\n\x05\x65mail\x18\x01 \x01(\t\".\n\rEsitoVerifica\x12\x0e\n\x06\x65siste\x18\x01 \x01(\x08\x12\r\n\x05\x65sito\x18\x02 \x01(\t2Z\n\x0bUserService\x12K\n\rVerificaEmail\x12\x1e.userservice.EmailDaVerificare\x1a\x1a.userservice.EsitoVerificab\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12user_service.proto\x12\x0buserservice\"\"\n\x11\x45mailDaVerificare\x12\r\n\x05\x65mail\x18\x01 \x01(\t\"\x1f\n\rEsitoVerifica\x12\x0e\n\x06\x65siste\x18\x01 \x01(\x08\"%\n\x11\x45sitoEliminazione\x12\x10\n\x08successo\x18\x01 \x01(\x08\x32\xae\x01\n\x0bUserService\x12K\n\rVerificaEmail\x12\x1e.userservice.EmailDaVerificare\x1a\x1a.userservice.EsitoVerifica\x12R\n\x10\x45liminaInteresse\x12\x1e.userservice.EmailDaVerificare\x1a\x1e.userservice.EsitoEliminazioneb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -24,7 +24,9 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_EMAILDAVERIFICARE']._serialized_start=35
   _globals['_EMAILDAVERIFICARE']._serialized_end=69
   _globals['_ESITOVERIFICA']._serialized_start=71
-  _globals['_ESITOVERIFICA']._serialized_end=117
-  _globals['_USERSERVICE']._serialized_start=119
-  _globals['_USERSERVICE']._serialized_end=209
+  _globals['_ESITOVERIFICA']._serialized_end=102
+  _globals['_ESITOELIMINAZIONE']._serialized_start=104
+  _globals['_ESITOELIMINAZIONE']._serialized_end=141
+  _globals['_USERSERVICE']._serialized_start=144
+  _globals['_USERSERVICE']._serialized_end=318
 # @@protoc_insertion_point(module_scope)
