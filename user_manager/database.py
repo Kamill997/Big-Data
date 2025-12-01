@@ -14,7 +14,6 @@ def get_db_connection():
             print(f"Tentativo di connessione a {DB_HOST}...")
             conn = mysql.connector.connect(
                 host=DB_HOST,
-                #port=3306,
                 user=DB_USER,
                 password=DB_PASSWORD,
                 database=DB_NAME
