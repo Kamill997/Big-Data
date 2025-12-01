@@ -121,12 +121,6 @@ def airports_flights(airport_code, start_time, end_time):
 
     headers = get_opensky_headers()
 
-    # Se l'auth è fallita, rallentiamo drasticamente per non prendere 429
-    #if not headers:
-     #   print(f"[STOP] IMPOSSIBILE SCARICARE: Credenziali non valide o mancanti.")
-      #  print(f"[STOP] Senza token, OpenSky blocca l'IP (429). Salto il download.")
-        #time.sleep(5)
-        #return
 
     # Tipi di volo da scaricare
     endpoints = [
@@ -176,11 +170,15 @@ def airports_flights(airport_code, start_time, end_time):
                                      INSERT INTO flights
                                      (icao, departure_airport, arrival_airport, departure_time, arrival_time)
                                      VALUES (%s, %s, %s, %s, %s)
-                                     ON DUPLICATE KEY UPDATE 
-                                         departure_airport=COALESCE(flights.departure_airport,VALUES(departure_airport)),
-                                         arrival_airport=COALESCE(flights.arrival_airport,values(arrival_airport)),
-                                         arrival_time=VALUES(arrival_time)
+                                     ON DUPLICATE KEY UPDATE
+                                                departure_airport = IF(VALUES(departure_airport) IS NOT NULL, VALUES(departure_airport), flights.departure_airport),
+                                                arrival_airport   = IF(VALUES(arrival_airport)   IS NOT NULL, VALUES(arrival_airport),   flights.arrival_airport),
+                                                departure_time = IF(VALUES(departure_time) IS NOT NULL, VALUES(departure_time), flights.departure_time),
+                                                arrival_time   = IF(VALUES(arrival_time)   IS NOT NULL, VALUES(arrival_time),   flights.arrival_time)
                                      """
+                    #departure_airport=COALESCE(flights.departure_airport,VALUES(departure_airport)),
+                    #arrival_airport=COALESCE(flights.arrival_airport,values(arrival_airport)),
+                    #arrival_time=VALUES(arrival_time)
 
                     print(f"[DB] Scrivo {len(batch_voli)} voli nel database...",flush=True)
                     cursor.executemany(insert_flights, batch_voli)
@@ -225,7 +223,7 @@ def fetch_opensky_data_cycle():
 
     # Intervallo temporale (Ultima ora)
     end_time = int(time.time())
-    start_time = end_time - 10400 #24 * 60 * 60
+    start_time = end_time - 8*3600 #24 * 60 * 60
 
     if not airports:
         print("[Ciclo] Nessun interesse attivo.")
@@ -291,7 +289,7 @@ def sottoscriviInteresse():
                         msg += " (Nuovo aeroporto -> Avvio download storico)"
                     else:
                         msg += " (Dati già presenti nel sistema)"
-                        ris.append(msg)
+                    ris.append(msg)
                 else:
                     ris.append(f"Interesse {interesse} già presente per te.")
 
@@ -308,15 +306,16 @@ def sottoscriviInteresse():
                   #  print(f"[DEBUG] {interesse} esisteva già -> Niente download.")
 
             db.commit()
-
+            print(f"Da scaricare: {daScaricare}")
             # =================================================================
             # AVVIO DOWNLOAD IMMEDIATO
             # =================================================================
             if daScaricare:
                 print(f"[TEST] Avvio thread per: {daScaricare}")
                 def quick_fetch():
+                    print("[THREAD] quick_fetch avviato con:", daScaricare)
                     end_time = int(time.time())
-                    start_time = end_time - 10400   #24 * 60 * 60)
+                    start_time = end_time - 8*3600   #24 * 60 * 60)
                     try:
                         print("[THREAD] Thread partito...")
                         for inte in daScaricare:
@@ -381,6 +380,104 @@ def eliminaInteresse():
             db.close()
     else:
         return jsonify({"Error":"Email non registrata"}),422
+
+@app.get('/flights/last')
+def last_flights():
+    airport = request.args.get('airport')
+    flight_type = request.args.get('type', 'departure') # 'departure' o 'arrival'
+
+    if not airport:
+        return jsonify({"error": "Airport code mancante"}), 400
+
+    conn = connect_db()
+    # dictionary=True è utile se usi mysql-connector puro per avere JSON facile,
+    # ma col tuo setup standard cursore a tuple va bene, formattiamo a mano:
+    cursor = conn.cursor()
+
+    try:
+        if flight_type == 'departure':
+            # Ultimo volo PARTITO da qui
+            query = """
+                    SELECT icao, departure_airport, arrival_airport, departure_time, arrival_time
+                    FROM flights
+                    WHERE departure_airport = %s
+                    ORDER BY departure_time DESC
+                    LIMIT 1 
+                    """
+        else:
+            # Ultimo volo ARRIVATO qui
+            query = """
+                    SELECT icao, departure_airport, arrival_airport, departure_time, arrival_time
+                    FROM flights
+                    WHERE arrival_airport = %s
+                    ORDER BY arrival_time DESC
+                    LIMIT 1 
+                    """
+
+        cursor.execute(query, (airport,))
+        row = cursor.fetchone()
+
+        if row:
+            # Convertiamo la tupla in dizionario per il JSON
+            flight_data = {
+                "icao": row[0],
+                "departure": row[1],
+                "arrival": row[2],
+                "dep_time": row[3],
+                "arr_time": row[4]
+            }
+            return jsonify({"airport": airport, "type": flight_type, "last_flight": flight_data})
+        else:
+            return jsonify({"message": f"Nessun volo registrato per {airport}"}), 404
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.get('/flights/average')
+def average_flights():
+    # Esempio: GET /stats/average?airport=LIRF&days=7&type=departure
+    airport = request.get('airport')
+    days = request.get('days')
+    flight_type = request.get('type', 'departure')
+
+    if not airport:
+        return jsonify({"error": "Airport code mancante"}), 400
+
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    try:
+        # Calcolo il timestamp di X giorni fa
+        # time.time() è in secondi. Giorni * 24h * 60m * 60s
+        cutoff_time = int(time.time()) - (days * 86400)
+
+        if flight_type == 'departure':
+            query = "SELECT COUNT(*) FROM flights WHERE departure_airport = %s AND departure_time > %s"
+        else:
+            query = "SELECT COUNT(*) FROM flights WHERE arrival_airport = %s AND arrival_time > %s"
+
+        cursor.execute(query, (airport, cutoff_time))
+        total_flights = cursor.fetchone()[0]
+
+        # Calcolo media
+        average = total_flights / days if days > 0 else 0
+
+        return jsonify({
+            "airport": airport,
+            "days_analyzed": days,
+            "type": flight_type,
+            "total_flights": total_flights,
+            "average_per_day": round(average, 2)
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.get('/debug/duplicati')
 def debug_duplicati():

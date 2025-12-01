@@ -9,7 +9,6 @@ DB_PASSWORD = "root"
 DB_NAME = "user_db"
 
 def get_db_connection():
-    """Prova a connettersi al database con un ciclo di retry."""
     retries = 5
     while retries > 0:
         try:

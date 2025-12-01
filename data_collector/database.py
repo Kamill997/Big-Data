@@ -53,7 +53,6 @@ def init_db():
 
         # 2. Tabella flights
 
-
         cursor.execute("""
                        CREATE TABLE IF NOT EXISTS flights(
                            id INT AUTO_INCREMENT PRIMARY KEY,

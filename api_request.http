@@ -10,7 +10,7 @@ Content-Type: application/json
 
 {
   "id": "{{$uuid}}",
-  "email": "mario.rossi@email.it",
+  "email": "giovanni.rossi@email.it",
   "name": "Mario",
   "surname": "Rossi"
 }
@@ -24,7 +24,7 @@ Content-Type: application/json
 
 {
   "id": "{{$uuid}}",
-  "email": "mario.rossi@email.it",
+  "email": "giovanni.rossi@email.it",
   "name": "Mario",
   "surname": "Rossi"
 }
@@ -37,8 +37,8 @@ POST http://127.0.0.1:5001/register
 Content-Type: application/json
 
 {
-  "id": "test-123",
-  "email": "luigi.verdi@email.it",
+  "id": "cb02f68f-9fad-42e5-a03a-1cf57d00c7a5",
+  "email": "mario.rossi@email.it",
   "name": "Luigi",
   "surname": "Verdi"
 }
@@ -65,7 +65,7 @@ DELETE http://127.0.0.1:5001/delete
 Content-Type: application/json
 
 {
-  "email": "luigi.verdi@email.it"
+  "email": "giovanni.rossi@email.it"
 }
 
 ###
@@ -88,8 +88,8 @@ POST http://localhost:5002/sottoscriviInteresse
 Content-Type: application/json
 
 {
-  "email": "mario.rossi@email.it",
-  "interessi": ["OMDB","KATL","EDDF"]
+  "email": "giovanni.rossi@email.it",
+  "interessi": ["EDDM"]
 }
 
 
@@ -102,11 +102,25 @@ Content-Type: application/json
 
 {
     "email": "mario.rossi@email.it",
-    "interessi": ["OMDB","KATL","LIRF","EDDF","LSZH","LSGG","LSGG","EDDM","LIML","LIMC","LIME"]
+    "interessi": ["OMDB","KATL","LIRF","EDDF","LSZH","LSGG","EDDM","LIML","LIMC","LIME"]
 }
 
 ###
+## TEST 9 ultimo arrivo/partenza
+GET http://localhost:5002/flights/last?airport=LSZH&type=arrival
+Content-Type: application/json
 
+###
+GET http://localhost:5002/flights/last?airport=LSZH&type=departure
+Content-Type: application/json
+
+###
+# TEST 10 Media partenze/arrivi
+GET http://localhost:5002/flights/average?airport=LSZH&days=5&type=departure
+
+###
+GET http://localhost:5002/flights/average?airport=LSZH&days=5&type=arrival
+###
 ## TEST 9 DEBUG
 GET http://localhost:5002/debug/duplicati
 Content-Type: application/json
