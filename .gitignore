@@ -1,0 +1,5 @@
+.env
+mysql_user/
+mysql_data/
+.idea/
+*.iml

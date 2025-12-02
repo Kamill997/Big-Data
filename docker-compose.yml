@@ -1,0 +1,88 @@
+version: "3.9"
+services:
+  user_db:
+    image: mysql:8.0
+    container_name: container_user_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${USER_DB_PASSWORD}
+      MYSQL_DATABASE: ${USER_DB_NAME}
+    ports:
+      - "3311:3306"
+    volumes:
+      - ./mysql_user:/var/lib/mysql
+    networks:
+      - user_net
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  data_db:
+    image: mysql:8.0
+    container_name: container_data_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DATA_DB_PASSWORD}
+      MYSQL_DATABASE: ${DATA_DB_NAME}
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    networks:
+      - data_net
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user_manager:
+    build: ./user_manager
+    container_name: container_user_manager
+    ports:
+      - "5001:5000"
+    environment:
+      - DB_HOST=${USER_DB_HOST}
+      - DB_USER=${USER_DB_USER}
+      - DB_PASSWORD=${USER_DB_PASSWORD}
+      - DB_NAME=${USER_DB_NAME}
+    depends_on:
+      user_db:
+        condition: service_healthy
+    networks:
+      - user_net
+      - grpc_net
+
+  data_collector:
+     build: ./data_collector
+     container_name: container_data_collector
+     ports:
+       - "5002:5000"
+     environment:
+       - PYTHONUNBUFFERED=1
+       - DB_HOST=${DATA_DB_HOST}
+       - DB_USER=${DATA_DB_USER}
+       - DB_PASSWORD=${DATA_DB_PASSWORD}
+       - DB_NAME=${DATA_DB_NAME}
+       - OPENSKY_CLIENT_ID=${OPENSKY_CLIENT_ID}
+       - OPENSKY_CLIENT_SECRET=${OPENSKY_CLIENT_SECRET}
+     depends_on:
+       data_db:
+         condition: service_healthy
+       user_manager:
+         condition: service_started
+     networks:
+       - data_net
+       - grpc_net
+
+networks:
+  user_net:
+  data_net:
+  grpc_net:
+    driver: bridge
+
+volumes:
+  user_db_data:
+  data_db_data:

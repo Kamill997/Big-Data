@@ -1,0 +1,7 @@
+flask
+flask[async]==2.2.5
+mysql-connector-python
+grpcio
+grpcio-tools
+requests
+schedule

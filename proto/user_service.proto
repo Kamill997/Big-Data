@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package user_service;
+
+service UserService {
+  rpc VerifyUser (UserRequest) returns (UserResponse);
+}
+
+service DataCollectorService {
+  rpc removeInterest (UserRequest) returns (DeletedResponse);
+}
+
+message UserRequest {
+  string email = 1;
+}
+
+message UserResponse {
+  bool exists = 1;
+}
+
+message DeletedResponse {
+  bool success = 1;
+}
