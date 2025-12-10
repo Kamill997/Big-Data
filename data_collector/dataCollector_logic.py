@@ -4,6 +4,9 @@ from OpenSky import opensky_service
 import asyncio
 import threading
 import time
+from circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
+
+circuit_breaker = CircuitBreaker(failure_threshold=5, timeout=5)
 
 class DataCollectorLogic:
     @staticmethod
@@ -62,13 +65,15 @@ class DataCollectorLogic:
                     try:
                         for inte in da_scaricare:
                             print(f"Chiamo airports_flights per {inte}")
-                            opensky_service.airports_flights(inte, start_time, end_time)
+                            result=circuit_breaker.call(opensky_service.airports_flights,inte, start_time, end_time)
                             time.sleep(2)
                             print("Il Download è terminato.")
-                    except Exception as thread_e:
-                        print(f"Errore nel thread: {thread_e}")
-                threading.Thread(target=quick_fetch, daemon=True).start()
+                    except CircuitBreakerOpenException:
+                        print(f"Circuit è aperto. La chiamata al servizio di OpenSky non verrà effettuata.")
+                    except Exception as e:
+                        print(f"Eccezione: - {e}")
 
+                threading.Thread(target=quick_fetch, daemon=True).start()
             else:
                 print("Nessun nuovo interesse da scaricare.")
             return True, ris, 200

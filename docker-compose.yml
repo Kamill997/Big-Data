@@ -54,6 +54,7 @@ services:
     networks:
       - user_net
       - grpc_net
+      - gateway_net
 
   data_collector:
      build: ./data_collector
@@ -76,12 +77,31 @@ services:
      networks:
        - data_net
        - grpc_net
+       - gateway_net
+
+  apigw:
+    image: nginx:stable
+    container_name: my_nginx
+    restart: always
+    ports:
+      - "8443:443"
+    depends_on:
+      - user_manager
+      - data_collector
+    volumes:
+      - ./nginx/configs/routing.conf:/etc/nginx/conf.d/routing.conf:ro
+      - ./nginx/html_content:/usr/share/nginx/html:ro
+      - ./nginx/SSL_certificate/nginx-selfsigned.crt:/etc/nginx/ssl/nginx-selfsigned.crt:ro
+      - ./nginx/SSL_certificate/nginx-selfsigned.key:/etc/nginx/ssl/nginx-selfsigned.key:ro
+    networks:
+      - gateway_net
 
 networks:
   user_net:
   data_net:
   grpc_net:
     driver: bridge
+  gateway_net:
 
 volumes:
   user_db_data:

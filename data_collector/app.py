@@ -74,7 +74,7 @@ async def last_flights():
         return jsonify({"error": "Codice Aeroporto mancante"}), 400
 
     if flight_type not in ['departure', 'arrival']:
-        return jsonify({"error": "Tipo non valido"}), 400
+        return jsonify({"error": "Tipo non valido, type deve assumere solo il valore departure o arrival"}), 400
 
     success, result, status = await DataCollectorLogic.last_flights(email, airport, flight_type)
 
@@ -87,15 +87,14 @@ async def last_flights():
 async def average_flights():
     email = request.headers.get('email')
     airport = request.args.get('airport')
+    if not email:
+        return jsonify({"error": "Inserire email"}), 400
     try:
         days = int(request.args.get('days'))
     except:
         return jsonify({"error": "days deve essere un numero intero"}), 400
 
     flight_type = request.args.get('type', 'departure')
-
-    if not email:
-        return jsonify({"error": "Inserire email"}), 400
 
     if not airport:
         return jsonify({"error": "Airport mancante"}), 400
@@ -104,7 +103,7 @@ async def average_flights():
         return jsonify({"error": "Giorni mancanti"}), 400
 
     if flight_type not in ['departure', 'arrival']:
-        return jsonify({"error": "Tipo non valido"}), 400
+        return jsonify({"error": "Tipo non valido, type deve assumere solo il valore departure o arrival"}), 400
 
     success, result, status = await DataCollectorLogic.average_flights(email, airport, days, flight_type)
 
