@@ -9,7 +9,7 @@ from confluent_kafka import Producer
 
 OPENSKY_API_URL = "https://opensky-network.org/api/flights"
 OPENSKY_TOKEN_URL = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token"
-KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'kafka_broker:9092')
+KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'broker_kafka:9092')
 producer = Producer({'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS})
 
 cb = CircuitBreaker(failure_threshold=3, timeout=60, expected_exception=requests.exceptions.RequestException)
@@ -72,7 +72,7 @@ class OpenSky:
             params = {'airport': airport_code, 'begin': start_time, 'end': end_time}
 
             try:
-                # --- CHIAMATA PROTETTA DA CIRCUIT BREAKER ---
+                #Utilizzo del Circuit breaker
                 print(f"[OpenSky] Request {suffix.upper()} per {airport_code}...")
                 response = cb.call(self._make_request, url, params)
                 #response = requests.get(url, params=params, headers=header, timeout=10)
@@ -150,7 +150,7 @@ class OpenSky:
         try:
             conn = connect_db()
             cursor = conn.cursor(dictionary=True)
-            # Recupero gli utenti interessati e le loro soglie (high/low value)
+            # Recupero gli utenti interessati e le loro soglie
             cursor.execute("SELECT email, high_value, low_value FROM user_interest WHERE airport_code = %s", (airport_code,))
             users = cursor.fetchall()
             conn.close()
