@@ -5,3 +5,4 @@ grpcio
 grpcio-tools
 requests
 schedule
+confluent-kafka

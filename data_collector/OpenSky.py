@@ -2,10 +2,17 @@ import requests
 import time
 import os
 import schedule
+import json
 from database import connect_db
+from circuit_breaker import CircuitBreaker,CircuitBreakerOpenException
+from confluent_kafka import Producer
 
 OPENSKY_API_URL = "https://opensky-network.org/api/flights"
 OPENSKY_TOKEN_URL = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token"
+KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'kafka_broker:9092')
+producer = Producer({'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS})
+
+cb = CircuitBreaker(failure_threshold=3, timeout=60, expected_exception=requests.exceptions.RequestException)
 
 class OpenSky:
     def __init__(self):
@@ -40,6 +47,10 @@ class OpenSky:
         except Exception as e:
             print(f"[OpenSky] Errore auth: {e}", flush=True)
 
+    def _make_request(self, url, params, headers=None):
+        """Funzione wrapper per il Circuit Breaker"""
+        return requests.get(url, params=params, headers=headers, timeout=10)
+
     def airports_flights(self, airport_code, start_time, end_time):
         print(f"[DEBUG] Download voli per {airport_code}", flush=True)
 
@@ -51,6 +62,8 @@ class OpenSky:
         conn = connect_db()
         cursor = conn.cursor()
 
+        total_arrival = 0
+        total_departure = 0
         endpoints = [("arrival", True), ("departure", False)]
         count_saved = 0
 
@@ -59,8 +72,10 @@ class OpenSky:
             params = {'airport': airport_code, 'begin': start_time, 'end': end_time}
 
             try:
+                # --- CHIAMATA PROTETTA DA CIRCUIT BREAKER ---
                 print(f"[OpenSky] Request {suffix.upper()} per {airport_code}...")
-                response = requests.get(url, params=params, headers=header, timeout=10)
+                response = cb.call(self._make_request, url, params)
+                #response = requests.get(url, params=params, headers=header, timeout=10)
 
                 if response.status_code == 401:
                     print("[OpenSky] Token scaduto, rigenero...")
@@ -71,6 +86,11 @@ class OpenSky:
                 if response.status_code == 200:
                     flights = response.json()
                     num_originali = len(flights)
+                    if is_arrival:
+                        total_arrival = num_originali
+                    else:
+                        total_departure = num_originali
+
                     print(f"[OpenSky] Trovati {len(flights)} voli ({suffix})")
 
                     flights = flights[:50]
@@ -113,6 +133,9 @@ class OpenSky:
                 else:
                     print(f"[OpenSky] Errore {response.status_code}: {response.text}")
 
+            except CircuitBreakerOpenException:
+                print(f"[CircuitBreaker] Aperto per {airport_code}. Chiamata bloccata.")
+
             except Exception as e:
                 print(f"[OpenSky] Eccezione: {e}")
 
@@ -121,7 +144,32 @@ class OpenSky:
         cursor.close()
         conn.close()
         print(f"[OpenSky] {airport_code}: Salvati {count_saved} voli totali (Arr+Dep).")
+        self.notify_alert_system(airport_code, total_arrival, total_departure)
 
+    def notify_alert_system(self, airport_code, arr, dep):
+        try:
+            conn = connect_db()
+            cursor = conn.cursor(dictionary=True)
+            # Recupero gli utenti interessati e le loro soglie (high/low value)
+            cursor.execute("SELECT email, high_value, low_value FROM user_interest WHERE airport_code = %s", (airport_code,))
+            users = cursor.fetchall()
+            conn.close()
+
+            if not users: return
+
+            payload = {
+                "airport": airport_code,
+                "arrival_count": arr,
+                "departure_count": dep,
+                "users": users # Passo la lista utenti al microservizio successivo
+            }
+
+            # Invio messaggio al topic 'to-alert-system'
+            producer.produce('to-alert-system', json.dumps(payload).encode('utf-8'))
+            producer.flush()
+            print(f"[Kafka] Inviato update per {airport_code} (Arr:{arr}/Dep:{dep})", flush=True)
+        except Exception as e:
+            print(f"[Kafka Error] Impossibile inviare messaggio: {e}")
 
     def fetch_opensky_data(self):
         print("[Scheduler] Inizio ciclo download...")

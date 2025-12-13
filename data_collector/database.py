@@ -42,6 +42,8 @@ def init_db():
                                 id INT AUTO_INCREMENT PRIMARY KEY,
                                 email VARCHAR(255),
                                 airport_code VARCHAR(10),
+                                high_value INT NOT NULL,
+                                low_value INT NOT NULL,
                                 UNIQUE(email, airport_code)
                        )
                        """)

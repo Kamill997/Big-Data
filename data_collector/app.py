@@ -16,10 +16,12 @@ async def subscribeInterest():
     data = request.json
     email = data.get("email")
     interessi = data.get("interessi")
+    high = data.get("high_value")
+    low = data.get("low_value")
 
     if not email: return jsonify({"error": "Email mancante"}), 400
 
-    success, result, status = await DataCollectorLogic.subscribeInterest(email, interessi)
+    success, result, status = await DataCollectorLogic.subscribeInterest(email, interessi,high,low)
 
     if success:
         return jsonify({"Esito operazione": result}), status

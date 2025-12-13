@@ -10,7 +10,7 @@ circuit_breaker = CircuitBreaker(failure_threshold=5, timeout=5)
 
 class DataCollectorLogic:
     @staticmethod
-    async def subscribeInterest(email, interessi):
+    async def subscribeInterest(email, interessi, high_value=None, low_value=None):
 
         try:
             exists = await (verify_email_grpc(email))
@@ -26,6 +26,9 @@ class DataCollectorLogic:
         if isinstance(interessi, str):
             interessi = [interessi]
 
+        if high_value is None: high_value = 200 # Default alto
+        if low_value is None: low_value = 0       # Default basso
+
         db = connect_db()
         cursor = db.cursor()
         ris = []
@@ -37,7 +40,7 @@ class DataCollectorLogic:
                 cursor.execute("SELECT * FROM user_interest WHERE airport_code=%s AND email=%s", (interesse, email))
                 if cursor.fetchone() is None:
                     # Inserisce il nuovo interesse
-                    cursor.execute("INSERT INTO user_interest (email, airport_code) VALUES (%s, %s)", (email, interesse))
+                    cursor.execute("INSERT INTO user_interest (email, airport_code, high_value, low_value) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE high_value = VALUES(high_value),low_value = VALUES(low_value)", (email, interesse,high_value, low_value))
                     msg = f"L'interesse {interesse} è stato registrato correttamente"
 
                     # Controllo se è un aeroporto nuovo e mai stato monitorato prima
