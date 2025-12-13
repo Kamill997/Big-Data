@@ -9,7 +9,6 @@ from OpenSky import run_scheduler
 
 app = Flask(__name__)
 
-#API
 @app.post('/subscribeInterest')
 async def subscribeInterest():
 
@@ -27,6 +26,27 @@ async def subscribeInterest():
         return jsonify({"Esito operazione": result}), status
     else:
         return jsonify({"error": result}), status
+
+@app.post('/modifieTreshold')
+async def modifieTreshold():
+    data=request.json
+    email = request.headers.get("email")
+    if not email: return jsonify({"error": "Email mancante"}), 400
+    icao=data.get("icao")
+    if not icao:
+        return jsonify({"error": "Icao non specificato"}), 400
+    min=None
+    max=None
+    min=data.get("soglia_min")
+    max=data.get("soglia_max")
+    if not max and not min:
+        return jsonify({"error": "Specificare nuovo valore della soglia max e/o min"}), 400
+    success,result,status = await DataCollectorLogic.modifieTreshold(email,max,min,icao)
+    if success:
+        return jsonify({"Esito operazione": result})
+    else:
+        return jsonify({"error": result})
+
 
 @app.delete('/removeInterest')
 async def removeInterest():
