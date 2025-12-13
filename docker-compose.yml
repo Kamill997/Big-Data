@@ -38,6 +38,76 @@ services:
       timeout: 5s
       retries: 5
 
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: broker_kafka
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker_kafka:29093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker_kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - kafka_net
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  alert_system:
+    build: ./alert_system
+    container_name: alert_system
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: broker_kafka:9092
+    networks:
+      - kafka_net
+
+  notifier_system:
+    build: ./notifier_system
+    container_name: notifier_system
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: broker_kafka:9092
+    networks:
+      - kafka_net
+
+  apigw:
+    image: nginx:stable
+    container_name: my_nginx
+    restart: always
+    ports:
+      - "8443:443"
+    depends_on:
+      - user_manager
+      - data_collector
+    volumes:
+      - ./nginx/configs/routing.conf:/etc/nginx/conf.d/routing.conf:ro
+      - ./nginx/html_content:/usr/share/nginx/html:ro
+      - ./nginx/SSL_certificate/nginx-selfsigned.crt:/etc/nginx/ssl/nginx-selfsigned.crt:ro
+      - ./nginx/SSL_certificate/nginx-selfsigned.key:/etc/nginx/ssl/nginx-selfsigned.key:ro
+    networks:
+      - gateway_net
+
   user_manager:
     build: ./user_manager
     container_name: container_user_manager
@@ -69,32 +139,20 @@ services:
        - DB_NAME=${DATA_DB_NAME}
        - OPENSKY_CLIENT_ID=${OPENSKY_CLIENT_ID}
        - OPENSKY_CLIENT_SECRET=${OPENSKY_CLIENT_SECRET}
+       - KAFKA_BOOTSTRAP_SERVERS=broker_kafka:9092
      depends_on:
        data_db:
          condition: service_healthy
        user_manager:
          condition: service_started
+       kafka:
+         condition: service_healthy
      networks:
        - data_net
        - grpc_net
        - gateway_net
+       - kafka_net
 
-  apigw:
-    image: nginx:stable
-    container_name: my_nginx
-    restart: always
-    ports:
-      - "8443:443"
-    depends_on:
-      - user_manager
-      - data_collector
-    volumes:
-      - ./nginx/configs/routing.conf:/etc/nginx/conf.d/routing.conf:ro
-      - ./nginx/html_content:/usr/share/nginx/html:ro
-      - ./nginx/SSL_certificate/nginx-selfsigned.crt:/etc/nginx/ssl/nginx-selfsigned.crt:ro
-      - ./nginx/SSL_certificate/nginx-selfsigned.key:/etc/nginx/ssl/nginx-selfsigned.key:ro
-    networks:
-      - gateway_net
 
 networks:
   user_net:
@@ -102,7 +160,9 @@ networks:
   grpc_net:
     driver: bridge
   gateway_net:
+  kafka_net:
 
 volumes:
   user_db_data:
   data_db_data:
+  kafka_data:
