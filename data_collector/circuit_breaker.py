@@ -33,6 +33,9 @@ class CircuitBreaker:
                 if self.state == 'HALF_OPEN':
                     self.state = 'CLOSED'
                     self.counter_failure = 0
+                if self.state== 'CLOSED':
+                    self.counter_failure = 0
+
                 return result
 
 class CircuitBreakerOpenException(Exception):

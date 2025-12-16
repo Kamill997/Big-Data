@@ -10,14 +10,22 @@ from confluent_kafka import Producer
 OPENSKY_API_URL = "https://opensky-network.org/api/flights"
 OPENSKY_TOKEN_URL = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token"
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'broker_kafka:9092')
-producer = Producer({'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS})
+
+producer_conf={
+    'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
+    'acks': 'all',
+    'retries': 3,
+    'linger.ms': 10,
+    'batch.size': 16384,
+    'max.in.flight.requests.per.connection': 1
+}
+producer = Producer(producer_conf)
 
 cb = CircuitBreaker(failure_threshold=3, timeout=60, expected_exception=requests.exceptions.RequestException)
 
 class OpenSky:
     def __init__(self):
         self.token = None
-        # Recupero credenziali direttamente dall'Environment
         self.client_id = os.getenv('OPENSKY_CLIENT_ID')
         self.client_secret = os.getenv('OPENSKY_CLIENT_SECRET')
 
@@ -28,7 +36,7 @@ class OpenSky:
 
     def _refresh_token(self):
         if not self.client_id or not self.client_secret:
-            print("[OpenSky] ❌ Credenziali mancanti (controlla il .env).", flush=True)
+            print("[OpenSky] Credenziali mancanti (controlla il .env).", flush=True)
             return
 
         print("[OpenSky] Rigenerazione Token...", flush=True)
@@ -41,21 +49,36 @@ class OpenSky:
             response = requests.post(OPENSKY_TOKEN_URL, data, timeout=10)
             if response.status_code == 200:
                 self.token = response.json().get("access_token")
-                print(f"[OpenSky] ✅ Nuovo Token generato.", flush=True)
+                print(f"[OpenSky] Nuovo Token generato.", flush=True)
             else:
-                print(f"[OpenSky] ❌ Errore Token: {response.status_code} - {response.text}", flush=True)
+                print(f"[OpenSky] Errore Token: {response.status_code} - {response.text}", flush=True)
         except Exception as e:
             print(f"[OpenSky] Errore auth: {e}", flush=True)
 
     def _make_request(self, url, params, headers=None):
-        """Funzione wrapper per il Circuit Breaker"""
         return requests.get(url, params=params, headers=headers, timeout=10)
+
+    def api_credits(self, response):
+        try:
+            # OpenSky usa headers standard tipo X-Rate-Limit-Remaining
+            remaining = response.headers.get("X-Rate-Limit-Remaining", "N/A")
+            limit = response.headers.get("X-Rate-Limit-Limit", "N/A")
+
+            # Se non trova quelli standard, a volte usa nomenclature diverse o non li manda su errore
+            if remaining != "N/A":
+                print(f"[OpenSky Quota] Crediti Rimanenti: {remaining} / Limite Giornaliero: {limit}", flush=True)
+            else:
+                # Debug: se non trovi gli header, stampa le chiavi disponibili per capire come si chiamano
+                # print(f"[DEBUG HEADERS] {response.headers.keys()}")
+                pass
+        except Exception as e:
+            print(f"[Quota Error] Impossibile leggere quota: {e}")
 
     def airports_flights(self, airport_code, start_time, end_time):
         print(f"[DEBUG] Download voli per {airport_code}", flush=True)
 
         header = self.get_headers()
-        if not header.get("Authorization"):
+        if not header or not header.get("Authorization"):
             print("[OpenSky] Skip download: No Token.", flush=True)
             return
 
@@ -74,14 +97,17 @@ class OpenSky:
             try:
                 #Utilizzo del Circuit breaker
                 print(f"[OpenSky] Request {suffix.upper()} per {airport_code}...")
-                response = cb.call(self._make_request, url, params)
-                #response = requests.get(url, params=params, headers=header, timeout=10)
+                response = cb.call(self._make_request, url, params,header)
+
+                self.api_credits(response)
 
                 if response.status_code == 401:
                     print("[OpenSky] Token scaduto, rigenero...")
-                    self.token = None
+                    #self.token = None
+                    self._refresh_token()
                     header = self.get_headers()
                     response = requests.get(url, params=params, headers=header, timeout=10)
+                    self.api_credits(response)
 
                 if response.status_code == 200:
                     flights = response.json()
@@ -135,6 +161,7 @@ class OpenSky:
 
             except CircuitBreakerOpenException:
                 print(f"[CircuitBreaker] Aperto per {airport_code}. Chiamata bloccata.")
+                break
 
             except Exception as e:
                 print(f"[OpenSky] Eccezione: {e}")
@@ -185,7 +212,7 @@ class OpenSky:
             return
 
         end_time = int(time.time())
-        start_time = end_time - 8*3600
+        start_time = end_time - 3600
 
         if not airports:
             print("Nessun interesse attivo.")
@@ -199,7 +226,7 @@ class OpenSky:
 opensky_service = OpenSky()
 
 def run_scheduler():
-    schedule.every(12).hours.do(opensky_service.fetch_opensky_data)
+    schedule.every(2).hours.do(opensky_service.fetch_opensky_data)
     print("[Scheduler] Scheduler avviato.")
     while True:
         schedule.run_pending()

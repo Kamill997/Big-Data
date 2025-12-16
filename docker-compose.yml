@@ -41,6 +41,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     container_name: broker_kafka
+    restart: always
     ports:
       - "29092:29092"
     environment:
@@ -72,6 +73,7 @@ services:
   alert_system:
     build: ./alert_system
     container_name: alert_system
+    restart: always
     depends_on:
       kafka:
         condition: service_healthy
@@ -83,11 +85,17 @@ services:
   notifier_system:
     build: ./notifier_system
     container_name: notifier_system
+    restart: always
     depends_on:
       kafka:
         condition: service_healthy
     environment:
       KAFKA_BOOTSTRAP_SERVERS: broker_kafka:9092
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: ${GMAIL_USER}
+      SMTP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      SENDER_NAME: BigData notifier system
     networks:
       - kafka_net
 
@@ -111,6 +119,7 @@ services:
   user_manager:
     build: ./user_manager
     container_name: container_user_manager
+    restart: always
     ports:
       - "5001:5000"
     environment:
@@ -129,6 +138,7 @@ services:
   data_collector:
      build: ./data_collector
      container_name: container_data_collector
+     restart: always
      ports:
        - "5002:5000"
      environment:
