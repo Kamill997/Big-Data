@@ -114,7 +114,25 @@ async def average_flights():
     else:
         return jsonify({"error": result}), status
 
-
+@app.post('/modifyTreshold')
+async def modifyTreshold():
+    data=request.json
+    email = data.get("email")
+    if not email: return jsonify({"error": "Email mancante"}), 400
+    icao=data.get("icao")
+    if not icao:
+        return jsonify({"error": "Icao non specificato"}), 400
+    min=None
+    max=None
+    min=data.get("low_value")
+    max=data.get("high_value")
+    if not max and not min:
+        return jsonify({"error": "Specificare nuovo valore della soglia max e/o min"}), 400
+    success,result,status = await DataCollectorLogic.modifyTreshold(email,max,min,icao)
+    if success:
+        return jsonify({"Esito operazione": result})
+    else:
+        return jsonify({"error": result})
 
 if __name__ == "__main__":
     time.sleep(5)

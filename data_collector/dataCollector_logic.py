@@ -215,3 +215,30 @@ class DataCollectorLogic:
         finally:
             cursor.close()
             db.close()
+
+    @staticmethod
+    async def modifyTreshold(email,max,min,icao):
+        try:
+            exists = await (verify_email_grpc(email))
+        except Exception as e:
+            return False, f"Errore verifica utente: {str(e)}", 500
+        if not exists:
+            return False, "Email non registrata", 400
+        db = connect_db()
+        cursor = db.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT high_value, low_value FROM user_interest WHERE email=%s AND airport_code=%s",(email, icao))
+            row = cursor.fetchone()
+            if not row:
+                return False, "Utente o aeroporto non trovato", 404
+            new_max = max if max is not None else row['high_value']
+            new_min = min if min is not None else row['low_value']
+            cursor.execute("UPDATE user_interest SET high_value=%s, low_value=%s WHERE email=%s AND airport_code=%s",(new_max, new_min, email, icao))
+            db.commit()
+            return  True,"Soglie aggiornate correttamente",200
+        except Exception as e:
+            db.rollback()
+            return False, f"Errore DB: {str(e)}", 500
+        finally:
+            cursor.close()
+            db.close()
