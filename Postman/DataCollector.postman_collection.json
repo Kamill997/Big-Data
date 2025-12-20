@@ -1,0 +1,357 @@
+{
+	"info": {
+		"_postman_id": "7af70379-b346-4d7a-9fcd-ca17c63d5ad0",
+		"name": "DataCollector",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "35281514"
+	},
+	"item": [
+		{
+			"name": "SUBSCRIBE INTEREST",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"camiololuxa991@gmail.com\",\r\n    \"interessi\": [\"LIRF\", \"EDDF\",\"LSZH\",\"LSZH\"],\r\n    \"high_value\": 15,\r\n    \"low_value\": 2\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:8443/data_collector/subscribeInterest",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8443",
+					"path": [
+						"data_collector",
+						"subscribeInterest"
+					]
+				},
+				"description": "ADD Interest"
+			},
+			"response": []
+		},
+		{
+			"name": "SUBSCRIBE INTEREST - Verifica Utente",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"camiololuxa991@gmail.com\",\r\n    \"interessi\": [\"LIRF\", \"EDDF\",\"LSZH\",\"LSZH\"],\r\n    \"high_value\": 15,\r\n    \"low_value\": 2\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:8443/data_collector/subscribeInterest",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8443",
+					"path": [
+						"data_collector",
+						"subscribeInterest"
+					]
+				},
+				"description": "ADD Interest"
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE INTEREST",
+			"request": {
+				"auth": {
+					"type": "oauth2",
+					"oauth2": [
+						{
+							"key": "addTokenTo",
+							"value": "header",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "token",
+						"value": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ0SVIwSDB0bmNEZTlKYmp4dFctWEtqZ0RYSWExNnR5eU5DWHJxUzJQNkRjIn0.eyJleHAiOjE3NjQ0Mzk2MDEsImlhdCI6MTc2NDQzNzgwMSwianRpIjoiZWUwMjNmMTQtNzlmNi00OTg1LTkxYjYtODhlZTYyMTA1Y2EzIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLm9wZW5za3ktbmV0d29yay5vcmcvYXV0aC9yZWFsbXMvb3BlbnNreS1uZXR3b3JrIiwiYXVkIjpbIndlYnNpdGUtdWkiLCJhY2NvdW50Il0sInN1YiI6IjkxNmQ2YjBlLWJlYjEtNDczNS1iZTQ5LTY2M2I2ZmFkNDNmYSIsInR5cCI6IkJlYXJlciIsImF6cCI6ImthbWlsbC1hcGktY2xpZW50IiwiYWNyIjoiMSIsInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsIk9QRU5TS1lfQVBJX0RFRkFVTFQiLCJ1bWFfYXV0aG9yaXphdGlvbiIsImRlZmF1bHQtcm9sZXMtb3BlbnNreS1uZXR3b3JrIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsid2Vic2l0ZS11aSI6eyJyb2xlcyI6WyJvcGVuc2t5X3dlYnNpdGVfdXNlciJdfSwiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJwcm9maWxlIGVtYWlsIiwiY2xpZW50SWQiOiJrYW1pbGwtYXBpLWNsaWVudCIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiY2xpZW50SG9zdCI6IjIuMzguMTUxLjQ0IiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2VydmljZS1hY2NvdW50LWthbWlsbC1hcGktY2xpZW50IiwiY2xpZW50QWRkcmVzcyI6IjIuMzguMTUxLjQ0In0.P52GoAqyIp9w_IDHiU8tMJaPvEsftxImrVCD0OO74_EVcJz0MUBrx6G899CKb0NsAYhp4soSIz2_41s62LICxrGNMpXOIW5Zxiz0p99UcQj1HfPiiXOIeZ5NE4uJHGeA0JVUqQpC9NJ13n7NYvDuIDZSDsyGwE5jfkdK-SUUBAExynTq13nBX059-tubPGPfb03k1DI40qzCz5RJOOxj3wdxlBX6T4iio7YXlgXxMVQEO_XkffaRaAbJJt9AHQBsy28SiAROSbwFaC7BGfvhWtFMN8iYI5ejpnqRUjfUDBTZzfsjkO4WSqvO-szcLiMcqVdl84I65oSjUmc3Xxjp1Q",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"email\": \"Mario.rossi@email.it\",\r\n  \"interessi\": [\"OMDB\",\"KATL\",\"LIRF\",\"EDDF\",\"LSZH\",\"LSGG\",\"EDDM\",\"LIML\",\"LIMC\",\"LIME\"]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:8443/data_collector/removeInterest",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8443",
+					"path": [
+						"data_collector",
+						"removeInterest"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "giuseppe@hotmail.it",
+							"disabled": true
+						},
+						{
+							"key": "name",
+							"value": "giuseppe",
+							"disabled": true
+						},
+						{
+							"key": "surname",
+							"value": "aleotta",
+							"disabled": true
+						},
+						{
+							"key": "id",
+							"value": "{{$uuid}}",
+							"disabled": true
+						}
+					]
+				},
+				"description": "Rimuovi Interessi"
+			},
+			"response": []
+		},
+		{
+			"name": "INFORMAZIONI AEREPORTO",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "email",
+						"value": "camiololuxa991@gmail.com",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://localhost:8443/data_collector/flights/info?icao=LSZH",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8443",
+					"path": [
+						"data_collector",
+						"flights",
+						"info"
+					],
+					"query": [
+						{
+							"key": "icao",
+							"value": "LSZH"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ULTIMO ARRIVO",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "email",
+						"value": "camiololuxa991@gmail.com",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://localhost:8443/data_collector/flights/last?airport=LSZH&type=arrival",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8443",
+					"path": [
+						"data_collector",
+						"flights",
+						"last"
+					],
+					"query": [
+						{
+							"key": "airport",
+							"value": "LSZH"
+						},
+						{
+							"key": "type",
+							"value": "arrival"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ULTIMA PARTENZA",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "email",
+						"value": "camiololuxa991@gmail.com",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://localhost:8443/data_collector/flights/last?airport=LSZH&type=departure",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8443",
+					"path": [
+						"data_collector",
+						"flights",
+						"last"
+					],
+					"query": [
+						{
+							"key": "airport",
+							"value": "LSZH"
+						},
+						{
+							"key": "type",
+							"value": "departure"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "MEDIA VOLI PARTENZE",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "email",
+						"value": "camiololuxa991@gmail.com",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://localhost:8443/data_collector/flights/average?airport=LSZH&days=5&type=departure",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8443",
+					"path": [
+						"data_collector",
+						"flights",
+						"average"
+					],
+					"query": [
+						{
+							"key": "airport",
+							"value": "LSZH"
+						},
+						{
+							"key": "days",
+							"value": "5"
+						},
+						{
+							"key": "type",
+							"value": "departure"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "MEDIA VOLI ARRIVI",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "email",
+						"value": "camiololuxa991@gmail.com",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://localhost:8443/data_collector/flights/average?airport=LSZH&days=5&type=arrival",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8443",
+					"path": [
+						"data_collector",
+						"flights",
+						"average"
+					],
+					"query": [
+						{
+							"key": "airport",
+							"value": "LSZH"
+						},
+						{
+							"key": "days",
+							"value": "5"
+						},
+						{
+							"key": "type",
+							"value": "arrival"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "MODIFY LOW/HIGH VALUE",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"Mario.rossi@email.it\",\r\n    \"icao\":  \"EDDF\",\r\n    \"low_value\": 10,\r\n    \"high_value\": 25\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:8443/data_collector/modifyTreshold",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8443",
+					"path": [
+						"data_collector",
+						"modifyTreshold"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

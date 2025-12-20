@@ -1,0 +1,126 @@
+{
+	"info": {
+		"_postman_id": "8f677118-d94e-44e1-9c6c-b8b89745c75f",
+		"name": "UserManager",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "35281514"
+	},
+	"item": [
+		{
+			"name": "ADD USER",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"id\": \"{{$uuid}}\",\r\n  \"email\": \"camiololuxa991@gmail.com\",\r\n  \"name\": \"Luca\",\r\n  \"surname\": \"Camiolo\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:8433/user_manager/register",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8433",
+					"path": [
+						"user_manager",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD USER - ID diverso",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"id\": \"{{$uuid}}\",\r\n  \"email\": \"camiololuxa991@gmail.com\",\r\n  \"name\": \"Luca\",\r\n  \"surname\": \"Camiolo\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:8433/user_manager/register",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8433",
+					"path": [
+						"user_manager",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ADD USER - ID uguale",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"id\": \"{{$uuid}}\",\r\n  \"email\": \"camiololuxa991@gmail.com\",\r\n  \"name\": \"Luca\",\r\n  \"surname\": \"Camiolo\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:8433/user_manager/register",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8433",
+					"path": [
+						"user_manager",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE USER",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"camiololuxa991@gmail.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:8443/user_manager/delete",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "8443",
+					"path": [
+						"user_manager",
+						"delete"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
