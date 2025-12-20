@@ -76,9 +76,9 @@ try:
                         
                         RIEPILOGO VOLI:
                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                          • Totale voli:     {total_flights}
-                          • Arrivi (Arr):    {total_arrival}
-                          • Partenze (Dep):  {total_departure}
+                        • Totale voli:     {total_flights}
+                        • Arrivi (Arr):    {total_arrival}
+                        • Partenze (Dep):  {total_departure}
                         """
                     }
 

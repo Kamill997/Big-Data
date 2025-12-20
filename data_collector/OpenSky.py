@@ -15,7 +15,7 @@ producer_conf={
     'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
     'acks': 'all',
     'retries': 3,
-    'linger.ms': 10,
+    'linger.ms': 500,
     'batch.size': 16384,
     'max.in.flight.requests.per.connection': 1
 }

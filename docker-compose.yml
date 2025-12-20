@@ -95,7 +95,7 @@ services:
       SMTP_PORT: 587
       SMTP_USER: ${GMAIL_USER}
       SMTP_PASSWORD: ${GMAIL_APP_PASSWORD}
-      SENDER_NAME: BigData notifier system
+      SENDER_NAME:  BigData notifier system
     networks:
       - kafka_net
 
