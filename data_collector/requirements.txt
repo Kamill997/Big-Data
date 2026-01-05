@@ -6,3 +6,4 @@ grpcio-tools
 requests
 schedule
 confluent-kafka
+prometheus_client

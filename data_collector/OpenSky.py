@@ -3,13 +3,40 @@ import time
 import os
 import schedule
 import json
+import socket
+import sys
 from database import connect_db
 from circuit_breaker import CircuitBreaker,CircuitBreakerOpenException
 from confluent_kafka import Producer
+from prometheus_client import start_http_server, Gauge, Counter
 
 OPENSKY_API_URL = "https://opensky-network.org/api/flights"
 OPENSKY_TOKEN_URL = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token"
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'broker_kafka:9092')
+
+HOSTNAME = socket.gethostname()
+
+# Metriche richieste (GAUGE e COUNTER)
+DOWNLOAD_DURATION = Gauge(
+    'opensky_download_duration_seconds',
+    'Time spent downloading data from OpenSky',
+    ['service', 'node', 'airport']
+)
+
+CB_FAILURES = Counter(
+    'circuit_breaker_failures_total',
+    'Total circuit breaker failures',
+    ['service', 'node', 'error_type']
+)
+
+# Avvio server su porta 8000
+try:
+    start_http_server(8000)
+    print(f"[Prometheus] Metrics server started on port 8000")
+except Exception as e:
+    print(f"[Prometheus ERROR] {e}", flush=True)
+    sys.exit(1)
+# ---------------------------------
 
 producer_conf={
     'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
@@ -90,83 +117,84 @@ class OpenSky:
         endpoints = [("arrival", True), ("departure", False)]
         count_saved = 0
 
-        for suffix, is_arrival in endpoints:
-            url = f"{OPENSKY_API_URL}/{suffix}"
-            params = {'airport': airport_code, 'begin': start_time, 'end': end_time}
+        with DOWNLOAD_DURATION.labels(service='data_collector', node=HOSTNAME, airport=airport_code).time():
+            for suffix, is_arrival in endpoints:
+                url = f"{OPENSKY_API_URL}/{suffix}"
+                params = {'airport': airport_code, 'begin': start_time, 'end': end_time}
 
-            try:
-                #Utilizzo del Circuit breaker
-                print(f"[OpenSky] Request {suffix.upper()} per {airport_code}...")
-                response = cb.call(self._make_request, url, params,header)
+                try:
+                    #Utilizzo del Circuit breaker
+                    print(f"[OpenSky] Request {suffix.upper()} per {airport_code}...")
+                    response = cb.call(self._make_request, url, params,header)
 
-                self.api_credits(response)
-
-                if response.status_code == 401:
-                    print("[OpenSky] Token scaduto, rigenero...")
-                    #self.token = None
-                    self._refresh_token()
-                    header = self.get_headers()
-                    response = requests.get(url, params=params, headers=header, timeout=10)
                     self.api_credits(response)
 
-                if response.status_code == 200:
-                    flights = response.json()
-                    num_originali = len(flights)
-                    if is_arrival:
-                        total_arrival = num_originali
+                    if response.status_code == 401:
+                        print("[OpenSky] Token scaduto, rigenero...")
+                        self._refresh_token()
+                        header = self.get_headers()
+                        response = requests.get(url, params=params, headers=header, timeout=10)
+                        self.api_credits(response)
+
+                    if response.status_code == 200:
+                        flights = response.json()
+                        num_originali = len(flights)
+                        if is_arrival:
+                            total_arrival = num_originali
+                        else:
+                            total_departure = num_originali
+
+                        print(f"[OpenSky] Trovati {len(flights)} voli ({suffix})")
+
+                        flights = flights[:50]
+                        print(f"[OpenSky] Trovati {num_originali} voli. Ne processo {len(flights)}.")
+
+                        batch_voli = []
+                        for flight in flights:
+                            valori = (
+                                flight.get('icao24'),
+                                flight.get('estDepartureAirport'),
+                                flight.get('estArrivalAirport'),
+                                flight.get('firstSeen'),
+                                flight.get('lastSeen'),
+                            )
+                            batch_voli.append(valori)
+
+                        if batch_voli:
+                            insert_flights = """
+                                             INSERT INTO flights (icao, departure_airport, arrival_airport, departure_time, arrival_time)
+                                             VALUES (%s, %s, %s, %s, %s)
+                                             ON DUPLICATE KEY UPDATE
+                                                departure_airport = IF(VALUES(departure_airport) IS NOT NULL, VALUES(departure_airport), flights.departure_airport),
+                                                arrival_airport   = IF(VALUES(arrival_airport)   IS NOT NULL, VALUES(arrival_airport),   flights.arrival_airport),
+                                                departure_time = IF(VALUES(departure_time) IS NOT NULL, VALUES(departure_time), flights.departure_time),
+                                                arrival_time   = IF(VALUES(arrival_time)   IS NOT NULL, VALUES(arrival_time),   flights.arrival_time) 
+                                             """
+
+                            print(f"[DB] Scrivo {len(batch_voli)} voli nel database...")
+                            cursor.executemany(insert_flights, batch_voli)
+                            conn.commit()
+                            count_saved += len(batch_voli)
+                            print(f"[DB] Scrittura completata per {suffix}.")
+
+                    elif response.status_code == 404:
+                        print(f"[OpenSky] Nessun dato trovato per {airport_code} ({suffix})")
+                        pass
+                    elif response.status_code == 429:
+                        print(f"[OpenSky] ERRORE 429: Troppe richieste!")
+                        time.sleep(5)
                     else:
-                        total_departure = num_originali
+                        print(f"[OpenSky] Errore {response.status_code}: {response.text}")
 
-                    print(f"[OpenSky] Trovati {len(flights)} voli ({suffix})")
+                except CircuitBreakerOpenException:
+                    CB_FAILURES.labels(service='data_collector', node=HOSTNAME, error_type='circuit_open').inc()
+                    print(f"[CircuitBreaker] Aperto per {airport_code}. Chiamata bloccata.")
+                    break
+                except Exception as e:
+                    CB_FAILURES.labels(service='data_collector', node=HOSTNAME, error_type='generic').inc()
+                    print(f"[OpenSky] Eccezione: {e}")
 
-                    flights = flights[:50]
-                    print(f"[OpenSky] Trovati {num_originali} voli. Ne processo {len(flights)}.")
-
-                    batch_voli = []
-                    for flight in flights:
-                        valori = (
-                            flight.get('icao24'),
-                            flight.get('estDepartureAirport'),
-                            flight.get('estArrivalAirport'),
-                            flight.get('firstSeen'),
-                            flight.get('lastSeen'),
-                        )
-                        batch_voli.append(valori)
-
-                    if batch_voli:
-                        insert_flights = """
-                                         INSERT INTO flights (icao, departure_airport, arrival_airport, departure_time, arrival_time)
-                                         VALUES (%s, %s, %s, %s, %s)
-                                         ON DUPLICATE KEY UPDATE
-                                            departure_airport = IF(VALUES(departure_airport) IS NOT NULL, VALUES(departure_airport), flights.departure_airport),
-                                            arrival_airport   = IF(VALUES(arrival_airport)   IS NOT NULL, VALUES(arrival_airport),   flights.arrival_airport),
-                                            departure_time = IF(VALUES(departure_time) IS NOT NULL, VALUES(departure_time), flights.departure_time),
-                                            arrival_time   = IF(VALUES(arrival_time)   IS NOT NULL, VALUES(arrival_time),   flights.arrival_time) 
-                                         """
-
-                        print(f"[DB] Scrivo {len(batch_voli)} voli nel database...")
-                        cursor.executemany(insert_flights, batch_voli)
-                        conn.commit()
-                        count_saved += len(batch_voli)
-                        print(f"[DB] Scrittura completata per {suffix}.")
-
-                elif response.status_code == 404:
-                    print(f"[OpenSky] Nessun dato trovato per {airport_code} ({suffix})")
-                    pass
-                elif response.status_code == 429:
-                    print(f"[OpenSky] ERRORE 429: Troppe richieste!")
-                    time.sleep(5)
-                else:
-                    print(f"[OpenSky] Errore {response.status_code}: {response.text}")
-
-            except CircuitBreakerOpenException:
-                print(f"[CircuitBreaker] Aperto per {airport_code}. Chiamata bloccata.")
-                break
-
-            except Exception as e:
-                print(f"[OpenSky] Eccezione: {e}")
-
-            time.sleep(2)
+                time.sleep(2)
 
         cursor.close()
         conn.close()

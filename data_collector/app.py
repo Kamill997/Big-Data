@@ -141,4 +141,4 @@ if __name__ == "__main__":
     scheduler_thread.start()
     grpc_thread = threading.Thread(target=serve, daemon=True)
     grpc_thread.start()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False , use_reloader=False)

@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s # Scrape interval standard
+
+scrape_configs:
+  # Monitoraggio di Prometheus stesso
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # cAdvisor (che è presente nel tuo docker-compose fornito)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # IL TUO MICROSERVIZIO 1: Data Collector
+  - job_name: 'data_collector'
+    static_configs:
+      - targets: ['container_data_collector:8000']
+
+  # IL TUO MICROSERVIZIO 2: Alert System
+  - job_name: 'alert_system'
+    static_configs:
+      - targets: ['alert_system:8001']
