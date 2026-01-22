@@ -38,20 +38,20 @@ def init_db():
 
         # 1. Tabella user
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                email VARCHAR(255) PRIMARY KEY,
-                name VARCHAR(100),
-                surname VARCHAR(100)
-            )
-        """)
+                       CREATE TABLE IF NOT EXISTS users (
+                                                            email VARCHAR(255) PRIMARY KEY,
+                                                            name VARCHAR(100),
+                                                            surname VARCHAR(100)
+                       )
+                       """)
 
         # 2. Tabella requestId
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS requestID (
-                id VARCHAR(100) PRIMARY KEY,
-                esito_richiesta VARCHAR(100)
-            )
-        """)
+                       CREATE TABLE IF NOT EXISTS requestID (
+                                                                id VARCHAR(100) PRIMARY KEY,
+                                                                esito_richiesta VARCHAR(100)
+                       )
+                       """)
 
         conn.commit()
         cursor.close()

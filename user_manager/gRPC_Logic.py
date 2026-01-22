@@ -7,7 +7,7 @@ import user_service_pb2_grpc
 #CLIENT
 async def removeInterest(email: str):
     try:
-        async with grpc.aio.insecure_channel("container_data_collector:50051") as channel:
+        async with grpc.aio.insecure_channel("data-collector-service:50051") as channel:
             stub = user_service_pb2_grpc.DataCollectorServiceStub(channel)
             request = await stub.removeInterest(
                 user_service_pb2.UserRequest(email=email)

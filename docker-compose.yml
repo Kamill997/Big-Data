@@ -137,32 +137,32 @@ services:
       - gateway_net
 
   data_collector:
-     build: ./data_collector
-     container_name: container_data_collector
-     restart: always
-     ports:
-       - "5002:5000"
-     environment:
-       - PYTHONUNBUFFERED=1
-       - DB_HOST=${DATA_DB_HOST}
-       - DB_USER=${DATA_DB_USER}
-       - DB_PASSWORD=${DATA_DB_PASSWORD}
-       - DB_NAME=${DATA_DB_NAME}
-       - OPENSKY_CLIENT_ID=${OPENSKY_CLIENT_ID}
-       - OPENSKY_CLIENT_SECRET=${OPENSKY_CLIENT_SECRET}
-       - KAFKA_BOOTSTRAP_SERVERS=broker_kafka:9092
-     depends_on:
-       data_db:
-         condition: service_healthy
-       user_manager:
-         condition: service_started
-       kafka:
-         condition: service_healthy
-     networks:
-       - data_net
-       - grpc_net
-       - gateway_net
-       - kafka_net
+    build: ./data_collector
+    container_name: container_data_collector
+    restart: always
+    ports:
+      - "5002:5000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DB_HOST=${DATA_DB_HOST}
+      - DB_USER=${DATA_DB_USER}
+      - DB_PASSWORD=${DATA_DB_PASSWORD}
+      - DB_NAME=${DATA_DB_NAME}
+      - OPENSKY_CLIENT_ID=${OPENSKY_CLIENT_ID}
+      - OPENSKY_CLIENT_SECRET=${OPENSKY_CLIENT_SECRET}
+      - KAFKA_BOOTSTRAP_SERVERS=broker_kafka:9092
+    depends_on:
+      data_db:
+        condition: service_healthy
+      user_manager:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    networks:
+      - data_net
+      - grpc_net
+      - gateway_net
+      - kafka_net
 
   prometheus:
     image: prom/prometheus:v2.48.0
@@ -177,11 +177,6 @@ services:
       - '--web.enable-lifecycle'
     ports:
       - "53120:9090"
-    links:
-      - cadvisor:cadvisor
-      #- alertmanager:alertmanager
-    depends_on:
-      - cadvisor
     restart: always
     deploy:
       mode: global
@@ -189,35 +184,6 @@ services:
       - gateway_net
       - kafka_net
 
-  #alertmanager:
-   # image: prom/alertmanager:v0.26.0
-   # ports:
-    #  - "9093:9093"
-    #volumes:
-     # - ./alertmanager/:/etc/alertmanager/
-    #restart: always
-    #command:
-     # - '--config.file=/etc/alertmanager/config.yml'
-      #- '--storage.path=/alertmanager'
-    #deploy:
-    #  mode: global
-    #networks:
-     # - gateway_net
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
-    volumes:
-      #- /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    ports:
-      - "8080:8080"
-    restart: always
-    deploy:
-      mode: global
-    networks:
-      - gateway_net
 
 networks:
   user_net:

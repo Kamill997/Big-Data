@@ -39,27 +39,27 @@ def init_db():
         # 1. Tabella user_interest
         cursor.execute("""
                        CREATE TABLE IF NOT EXISTS user_interest (
-                                id INT AUTO_INCREMENT PRIMARY KEY,
-                                email VARCHAR(255),
-                                airport_code VARCHAR(10),
-                                high_value INT NOT NULL,
-                                low_value INT NOT NULL,
-                                UNIQUE(email, airport_code)
+                                                                    id INT AUTO_INCREMENT PRIMARY KEY,
+                                                                    email VARCHAR(255),
+                                                                    airport_code VARCHAR(10),
+                                                                    high_value INT NOT NULL,
+                                                                    low_value INT NOT NULL,
+                                                                    UNIQUE(email, airport_code)
                        )
                        """)
 
         # 2. Tabella flights
         cursor.execute("""
                        CREATE TABLE IF NOT EXISTS flights(
-                           id INT AUTO_INCREMENT PRIMARY KEY,
-                           icao VARCHAR(50),
-                           departure_airport VARCHAR(20),
-                           arrival_airport   VARCHAR(20),
-                           departure_time BIGINT,
-                           arrival_time  BIGINT,
-                           UNIQUE KEY unique_flight (icao, departure_time)
+                                                             id INT AUTO_INCREMENT PRIMARY KEY,
+                                                             icao VARCHAR(50),
+                                                             departure_airport VARCHAR(20),
+                                                             arrival_airport   VARCHAR(20),
+                                                             departure_time BIGINT,
+                                                             arrival_time  BIGINT,
+                                                             UNIQUE KEY unique_flight (icao, departure_time)
                        )
-                    """)
+                       """)
 
         conn.commit()
         cursor.close()

@@ -1,6 +1,27 @@
+import socket
+import sys
 from database import connect_db
 import asyncio
 from gRPC_Logic import removeInterest
+from prometheus_client import start_http_server, Gauge, Counter
+
+HOSTNAME= socket.gethostname()
+COUNTER_REGISTRY = Counter(
+    'user_registered_total',
+    'Total number of users registered',
+    ['service','node']
+)
+COUNTER_DELETE=Counter(
+    'user_deleted_total',
+    'Total number of users deleted',
+    ['service','node']
+)
+try:
+    start_http_server(9102)
+    print(f"[Prometheus] Metrics server started on port 9102")
+except Exception as e:
+    print(f"[Prometheus ERROR] {e}", flush=True)
+    sys.exit(1)
 
 class UserLogic:
 
@@ -32,15 +53,13 @@ class UserLogic:
                 "INSERT INTO users (email, name, surname) VALUES (%s,%s,%s)",
                 (email, name, surname)
             )
-
-            #Inserimento Richiesta
             esito = "Utente registrato correttamente"
             cursor.execute(
                 "INSERT INTO requestID (id, esito_richiesta) VALUES (%s,%s)",
                 (id,esito )
             )
-
             db.commit()
+            COUNTER_REGISTRY.labels(service='user_manager',node=HOSTNAME).inc()
             return True, esito , 200
 
         except Exception as e:
@@ -71,7 +90,7 @@ class UserLogic:
 
             cursor.execute("DELETE FROM users WHERE email=%s", (email,))
             db.commit()
-
+            COUNTER_DELETE.labels(service='user_manager',node=HOSTNAME).inc()
             return True, "Utente eliminato correttamente",200
 
         except Exception as e:

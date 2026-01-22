@@ -15,8 +15,6 @@ OPENSKY_TOKEN_URL = "https://auth.opensky-network.org/auth/realms/opensky-networ
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'broker_kafka:9092')
 
 HOSTNAME = socket.gethostname()
-
-# Metriche richieste (GAUGE e COUNTER)
 DOWNLOAD_DURATION = Gauge(
     'opensky_download_duration_seconds',
     'Time spent downloading data from OpenSky',
@@ -28,6 +26,7 @@ CB_FAILURES = Counter(
     'Total circuit breaker failures',
     ['service', 'node', 'error_type']
 )
+
 
 # Avvio server su porta 8000
 try:
@@ -165,10 +164,10 @@ class OpenSky:
                                              INSERT INTO flights (icao, departure_airport, arrival_airport, departure_time, arrival_time)
                                              VALUES (%s, %s, %s, %s, %s)
                                              ON DUPLICATE KEY UPDATE
-                                                departure_airport = IF(VALUES(departure_airport) IS NOT NULL, VALUES(departure_airport), flights.departure_airport),
-                                                arrival_airport   = IF(VALUES(arrival_airport)   IS NOT NULL, VALUES(arrival_airport),   flights.arrival_airport),
-                                                departure_time = IF(VALUES(departure_time) IS NOT NULL, VALUES(departure_time), flights.departure_time),
-                                                arrival_time   = IF(VALUES(arrival_time)   IS NOT NULL, VALUES(arrival_time),   flights.arrival_time) 
+                                                                  departure_airport = IF(VALUES(departure_airport) IS NOT NULL, VALUES(departure_airport), flights.departure_airport),
+                                                                  arrival_airport   = IF(VALUES(arrival_airport)   IS NOT NULL, VALUES(arrival_airport),   flights.arrival_airport),
+                                                                  departure_time = IF(VALUES(departure_time) IS NOT NULL, VALUES(departure_time), flights.departure_time),
+                                                                  arrival_time   = IF(VALUES(arrival_time)   IS NOT NULL, VALUES(arrival_time),   flights.arrival_time) \
                                              """
 
                             print(f"[DB] Scrivo {len(batch_voli)} voli nel database...")
@@ -216,7 +215,7 @@ class OpenSky:
                 "airport": airport_code,
                 "arrival_count": arr,
                 "departure_count": dep,
-                "users": users # Passo la lista utenti al microservizio successivo
+                "users": users
             }
 
             # Invio messaggio al topic 'to-alert-system'

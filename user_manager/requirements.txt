@@ -2,4 +2,5 @@ flask
 mysql-connector-python
 grpcio
 grpcio-tools
+prometheus_client
 flask[async]==2.2.5

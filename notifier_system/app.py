@@ -1,4 +1,6 @@
 import json
+from prometheus_client import start_http_server, Counter, Gauge
+import socket
 import os
 import sys
 import smtplib
@@ -7,6 +9,20 @@ from confluent_kafka import Consumer
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'broker_kafka:9092')
 TOPIC_IN = 'to-notifier'
+HOSTNAME = socket.gethostname()
+
+EMAIL_SENT = Counter(
+    'email_sent_total',
+    'Total number of email sent to user',
+    ['service', 'node', 'email']
+)
+
+try:
+    start_http_server(8002)
+    print("[Prometheus] Metrics server active on port 8002", flush=True)
+except Exception as e:
+    print(f"[Prometheus Error] {e}", flush=True)
+
 
 consumer_conf = {
     'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
@@ -42,6 +58,7 @@ def send_email(receiver_email, subject, body):
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
 
+        EMAIL_SENT.labels(service="notifier_system", node=HOSTNAME,email=email).inc()
         print(f"[Notifier] Email inviata con successo a {receiver_email}", flush=True)
     except Exception as e:
         print(f"[Notifier] Errore invio email: {e}", flush=True)

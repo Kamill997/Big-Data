@@ -166,10 +166,10 @@ class DataCollectorLogic:
         try:
             if flight_type == 'departure':
                 cursor.execute("SELECT icao, departure_airport, arrival_airport, departure_time, arrival_time FROM flights WHERE departure_airport = %s ORDER BY arrival_time DESC LIMIT 1",
-                           (airport,))
+                               (airport,))
             else:
                 cursor.execute("SELECT icao, departure_airport, arrival_airport, departure_time, arrival_time FROM flights WHERE arrival_airport = %s ORDER BY arrival_time DESC LIMIT 1",
-                           (airport,))
+                               (airport,))
 
             row = cursor.fetchone()
 

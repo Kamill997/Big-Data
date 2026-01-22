@@ -7,7 +7,7 @@ import user_service_pb2_grpc
 #CLIENT
 async def verify_email_grpc(email: str):
     try:
-        async with grpc.aio.insecure_channel("container_user_manager:50051") as channel:
+        async with grpc.aio.insecure_channel("user-manager-service:50051") as channel:
             stub = user_service_pb2_grpc.UserServiceStub(channel)
             requested = await stub.VerifyUser(user_service_pb2.UserRequest(email=email))
             return requested.exists
