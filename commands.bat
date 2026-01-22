@@ -1,10 +1,10 @@
 @echo off
 echo ========================================
-echo Script di Deploy Kubernetes con Kind
+echo Deploy Kubernetes
 echo ========================================
 echo.
 
-REM 1. Elimina il cluster esistente
+REM 1. Elimina cluster esistente
 echo [1/9] Eliminazione cluster esistente...
 kind delete cluster --name bigdata-project
 if errorlevel 1 (
@@ -12,7 +12,7 @@ if errorlevel 1 (
 )
 echo.
 
-REM 2. Crea il nuovo cluster
+REM 2. Crea cluster
 echo [2/9] Creazione nuovo cluster...
 kind create cluster --config kind/kind_config.yaml
 if errorlevel 1 (
