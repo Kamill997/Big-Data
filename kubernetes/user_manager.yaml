@@ -1,0 +1,71 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: user-manager-service
+  namespace: flights-monitoring
+spec:
+  selector:
+    app: user-manager
+  ports:
+    - name: api
+      protocol: TCP
+      port: 5000
+      targetPort: 5000
+    - name: grpc
+      protocol: TCP
+      port: 50051
+      targetPort: 50051
+    - name: metrics
+      protocol: TCP
+      port: 9102
+      targetPort: 9102
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: user-manager
+  namespace: flights-monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-manager
+  template:
+    metadata:
+      labels:
+        app: user-manager
+    spec:
+      initContainers:
+        - name: db-wait
+          image: busybox:1.35
+          command:
+            - 'sh'
+            - '-c'
+            - 'until nc -z user-db-service 3306; do echo "Waiting for Database..."; sleep 2; done'
+      containers:
+        - name: user-manager
+          image: user-manager:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+            - containerPort: 50051
+            - containerPort: 9102
+          env:
+            - name: DB_HOST
+              value: "user-db-service"
+            - name: DB_USER
+              value: "root"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: mysql-root-password
+            - name: DB_NAME
+              value: "user_db"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

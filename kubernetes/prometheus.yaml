@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: flights-monitoring
+spec:
+  type: NodePort
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30090
+  selector:
+    app: prometheus
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: flights-monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 10s
+    scrape_configs:
+      - job_name: 'data-collector'
+        static_configs:
+          - targets: ['data-collector-service:8000']
+      - job_name: 'alert-system'
+        static_configs:
+          - targets: ['alert-system:8001']
+      - job_name: 'user-manager'
+        static_configs:
+          - targets: ['user-manager-service:9102']
+      - job_name: 'notifier-system'
+        static_configs:
+          - targets: ['notifier-system:8002']
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-deployment
+  namespace: flights-monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:latest
+          ports:
+            - containerPort: 9090
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus/
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-config

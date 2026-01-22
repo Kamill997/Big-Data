@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: data-collector-service
+  namespace: flights-monitoring
+spec:
+  selector:
+    app: data-collector
+  ports:
+    - name: api
+      protocol: TCP
+      port: 5000
+      targetPort: 5000
+    - name: metrics
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+    - name: grpc
+      protocol: TCP
+      port: 50051
+      targetPort: 50051
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: data-collector
+  namespace: flights-monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-collector
+  template:
+    metadata:
+      labels:
+        app: data-collector
+    spec:
+      initContainers:
+        - name: kafka-wait
+          image: busybox:1.35
+          command:
+            - 'sh'
+            - '-c'
+            - 'until nc -z kafka-service 9092; do echo "Waiting for Kafka..."; sleep 2; done'
+
+        - name: db-wait
+          image: busybox:1.35
+          command:
+            - 'sh'
+            - '-c'
+            - 'until nc -z data-db-service 3306; do echo "Waiting for Database..."; sleep 2; done'
+
+      containers:
+        - name: data-collector
+          image: data-collector:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5000
+            - containerPort: 8000
+            - containerPort: 50051
+          env:
+            - name: DB_HOST
+              value: "data-db-service"
+            - name: DB_USER
+              value: "root"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: mysql-root-password
+            - name: DB_NAME
+              value: "data_db"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+            - name: OPENSKY_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: opensky-client-id
+            - name: OPENSKY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: opensky-client-secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
