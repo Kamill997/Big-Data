@@ -14,7 +14,9 @@ Autori: Gioele Messina, Luca Camiolo. I dettagli di progetto sono nella relazion
 ## Architettura
 
 ```
+
 ![Architettura del sistema](docs/architettura.png)
+
 ```
 
 ### Microservizi
