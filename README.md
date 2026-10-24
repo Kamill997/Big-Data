@@ -15,7 +15,7 @@ Autori: Gioele Messina, Luca Camiolo. I dettagli di progetto sono nella relazion
 
 ```
 
-![Architettura del sistema](docs/architettura.png)
+![Architettura del sistema](docs/architettura.svg)
 
 ```
 
