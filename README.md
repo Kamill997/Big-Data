@@ -133,7 +133,7 @@ Le credenziali **non** vanno committate nella repository.
 
 **Kubernetes** – modificare `kubernetes/secrets.yaml` inserendo le credenziali OpenSky e i dati SMTP Gmail.
 
-**Docker Compose** – creare un file `.env` nella root (già escluso da `.gitignore`):
+**Docker Compose** – creare un file `.env` nella root:
 
 ```env
 # User Manager
@@ -156,8 +156,6 @@ OPENSKY_CLIENT_SECRET=<client_secret>
 GMAIL_USER=<indirizzo@gmail.com>
 GMAIL_APP_PASSWORD=<app_password>
 ```
-
-> ⚠️ Se `.env` o `secrets.yaml` contengono credenziali reali, non pubblicarli e, se già condivisi, rigenerare le chiavi.
 
 ---
 
@@ -221,9 +219,3 @@ L'API gateway risponde su `https://localhost:8443`, Prometheus su `http://localh
 
 ---
 
-## Note di progetto
-
-- **Una replica per pod** (`replicas: 1`) e un solo nodo worker, per contenere il consumo di risorse; per scalare è sufficiente aumentare il valore di `replicas`.
-- **Circuit Breaker** sulle chiamate a OpenSky (e sulle verifiche utente) per evitare chiamate ripetute verso servizi non disponibili.
-- Kafka è configurato con consumer a commit manuale (`enable.auto.commit: False`) e producer con `acks=all`, per non perdere messaggi.
-- Rispetto all'homework precedente il file `.env` è stato sostituito da `kubernetes/secrets.yaml`.
