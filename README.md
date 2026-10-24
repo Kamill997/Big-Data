@@ -14,25 +14,7 @@ Autori: Gioele Messina, Luca Camiolo. I dettagli di progetto sono nella relazion
 ## Architettura
 
 ```
-                    Client (Postman)
-                          │ HTTPS
-                          ▼
-              ┌───────────────────────┐
-              │  API Gateway / Ingress │  (NGINX, TLS, :8443)
-              └───────┬───────────┬───┘
-         /user_manager│           │/data_collector
-                      ▼           ▼
-              ┌──────────────┐  gRPC   ┌────────────────┐   API    ┌──────────┐
-              │ User Manager │◄───────►│ Data Collector │◄────────►│ OpenSky  │
-              └──────┬───────┘ :50051  └───┬────────┬───┘          └──────────┘
-                     │                     │        │
-                ┌────▼────┐           ┌────▼───┐    │ topic: to-alert-system
-                │ User DB │           │Data DB │    ▼
-                │ (MySQL) │           │(MySQL) │  ┌───────┐   topic: to-notifier   ┌──────────┐
-                └─────────┘           └────────┘  │ Kafka │───► Alert System ─────►│ Notifier │──► e-mail (SMTP Gmail)
-                                                  └───────┘                        └──────────┘
-
-   Prometheus ── scrape delle metriche di User Manager, Data Collector, Alert System, Notifier System
+![Architettura del sistema](docs/architettura.png)
 ```
 
 ### Microservizi
